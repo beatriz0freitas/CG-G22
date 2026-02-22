@@ -1,9 +1,8 @@
-cmake_minimum_required(VERSION 3.5)
-project(ProjetoCG)
+cmake_minimum_required(VERSION 3.10)
+project(CG CXX)
 
-# Usa o padrão C++17
 set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Adiciona os dois subprojetos
 add_subdirectory(generator)
 add_subdirectory(engine)
