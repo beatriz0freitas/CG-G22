@@ -14,16 +14,14 @@ Model generateSphere(float radius, int slices, int stacks) {
             float theta0 = j * dTheta;
             float theta1 = theta0 + dTheta;
 
-            // Para uma esfera centrada na origem, a normal em qualquer
-            // ponto é simplesmente a posição normalizada (dividida pelo raio).
-            // Guardamo-la já, mesmo que só seja usada na Fase 4.
+            // Para uma esfera centrada na origem, a normal em qualquer ponto é simplesmente a posição normalizada (dividida pelo raio).
             auto makeVertex = [&](float phi, float theta) -> Vertex {
                 float nx = cosf(phi) * sinf(theta);
                 float ny = sinf(phi);
                 float nz = cosf(phi) * cosf(theta);
                 return { radius*nx, radius*ny, radius*nz,
                          nx, ny, nz,
-                         0, 0 }; // u,v na Fase 4
+                         0, 0 };
             };
 
             Vertex v00 = makeVertex(phi0, theta0);

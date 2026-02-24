@@ -13,7 +13,6 @@ bool saveToFile(const Model& model, const std::string& filename) {
     f << model.size() << "\n";
 
     // Uma linha por vértice com todos os campos.
-    // Na Fase 1, nx ny nz u v são 0 — o formato já está pronto para a Fase 4.
     for (const auto& v : model)
         f << v.x  << " " << v.y  << " " << v.z  << " "
           << v.nx << " " << v.ny << " " << v.nz << " "

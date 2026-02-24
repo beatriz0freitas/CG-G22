@@ -30,7 +30,7 @@ Model generateCone(float radius, float height, int slices, int stacks) {
                 float nz = cosA * cosf(theta);
                 return { r*sinf(theta), y, r*cosf(theta),
                          nx, ny, nz,
-                         0, 0 }; // u,v na Fase 4
+                         0, 0 };
             };
 
             Vertex v00 = makeLatVertex(r0, y0, theta0);

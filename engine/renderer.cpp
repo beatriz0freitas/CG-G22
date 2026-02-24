@@ -6,23 +6,8 @@
 #  include <GL/glut.h>
 #endif
 
-void rendererInit(const Scene& /*scene*/) {
-    // Face culling não é ativado na Fase 1:
-    // em wireframe (GL_FRONT_AND_BACK) o culling removeria metade das arestas.
-    // Fase 4: ativar aqui quando a iluminação entrar e o culling fizer sentido visual.
-
-    // Fase 3: criar VBOs aqui, um por Mesh.
-}
-
-// Desenha um Group e os seus filhos recursivamente.
-// Fase 1: sem transforms, sem filhos.
-// Fase 2: adicionar glPushMatrix / applyTransform / glPopMatrix
-//         e chamar renderGroup recursivamente para children.
+// Desenha um Group e os seus filhos recursivamente - por agora sem transforms, sem filhos.
 static void renderGroup(const Group& group) {
-
-    // Fase 2 →
-    // glPushMatrix();
-    // applyTransform(group.transform);
 
     glColor3f(1.0f, 1.0f, 1.0f);
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -33,11 +18,6 @@ static void renderGroup(const Group& group) {
             glVertex3f(v.x, v.y, v.z);
         glEnd();
     }
-
-    // Fase 2 →
-    // for (const auto& child : group.children)
-    //     renderGroup(child);
-    // glPopMatrix();
 }
 
 void renderScene(const Scene& scene) {
@@ -45,9 +25,8 @@ void renderScene(const Scene& scene) {
     glLoadIdentity();
 
     const Camera& c = scene.camera;
-    // up = (0,1,0) fixo conforme os slides da UC.
-    // Seguro porque |beta| < 1.5 rad garante que a câmara nunca fica
-    // paralela ao eixo Y.
+    // up = (0,1,0) fixo conforme os slides.
+    // Seguro porque |beta| < 1.5 rad garante que a câmara nunca fica paralela ao eixo Y.
     gluLookAt(c.position.x, c.position.y, c.position.z,
               c.lookAt.x,   c.lookAt.y,   c.lookAt.z,
               0.0f, 1.0f, 0.0f);
