@@ -5,14 +5,18 @@
 #include "primitives/box.h"
 #include "primitives/sphere.h"
 #include "primitives/cone.h"
+#include "primitives/cylinder.h"
+#include "primitives/torus.h"
 
 static void usage() {
     std::cout
         << "Uso:\n"
-        << "  generator plane  <length> <divisions> <output.3d>\n"
-        << "  generator box    <size> <divisions> <output.3d>\n"
-        << "  generator sphere <radius> <slices> <stacks> <output.3d>\n"
-        << "  generator cone   <radius> <height> <slices> <stacks> <output.3d>\n";
+        << "  generator plane    <length> <divisions> <output.3d>\n"
+        << "  generator box      <size> <divisions> <output.3d>\n"
+        << "  generator sphere   <radius> <slices> <stacks> <output.3d>\n"
+        << "  generator cone     <radius> <height> <slices> <stacks> <output.3d>\n"
+        << "  generator cylinder <radius> <height> <slices> <stacks> <output.3d>\n"
+        << "  generator torus    <outerRadius> <innerRadius> <sides> <rings> <output.3d>\n";
 }
 
 int main(int argc, char* argv[]) {
@@ -35,7 +39,18 @@ int main(int argc, char* argv[]) {
             return saveToFile(m, args[4]) ? 0 : 1;
 
         } else if (cmd == "cone" && argc == 7) {
-            auto m = generateCone(std::stof(args[1]), std::stof(args[2]), std::stoi(args[3]), std::stoi(args[4]));
+            auto m = generateCone(std::stof(args[1]), std::stof(args[2]),
+                                  std::stoi(args[3]), std::stoi(args[4]));
+            return saveToFile(m, args[5]) ? 0 : 1;
+
+        } else if (cmd == "cylinder" && argc == 7) {
+            auto m = generateCylinder(std::stof(args[1]), std::stof(args[2]),
+                                      std::stoi(args[3]), std::stoi(args[4]));
+            return saveToFile(m, args[5]) ? 0 : 1;
+
+        } else if (cmd == "torus" && argc == 7) {
+            auto m = generateTorus(std::stof(args[1]), std::stof(args[2]),
+                                   std::stoi(args[3]), std::stoi(args[4]));
             return saveToFile(m, args[5]) ? 0 : 1;
 
         } else {

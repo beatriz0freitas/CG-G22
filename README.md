@@ -1,6 +1,6 @@
 # CG Engine — Fase 1
 
-Motor 3D minimalista desenvolvido no âmbito da UC de Computação Gráfica (MIEI/LCC — UM). Lê uma cena descrita em XML e renderiza os modelos em wireframe com navegação orbital interativa.
+Motor 3D minimalista desenvolvido no âmbito da UC de Computação Gráfica. Lê uma cena descrita em XML e renderiza os modelos em wireframe com navegação orbital interativa.
 
 ---
 
@@ -66,6 +66,8 @@ mkdir -p ../models
 ./generator/generator box    2 3      ../models/box.3d
 ./generator/generator sphere 1 10 10  ../models/sphere.3d
 ./generator/generator cone   1 2 4 3  ../models/cone.3d
+./generator/generator cylinder 1 2 16 4  ../models/cylinder.3d
+./generator/generator torus    1 0.3 16 32 ../models/torus.3d
 ```
 
 Sintaxe completa:
@@ -75,6 +77,8 @@ generator plane  <length> <divisions> <output.3d>
 generator box    <size> <divisions> <output.3d>
 generator sphere <radius> <slices> <stacks> <output.3d>
 generator cone   <radius> <height> <slices> <stacks> <output.3d>
+generator cylinder <radius> <height> <slices> <stacks> <output.3d>
+generator torus    <outerRadius> <innerRadius> <sides> <rings> <output.3d>
 ```
 
 ### 2. Correr o engine
@@ -82,7 +86,10 @@ generator cone   <radius> <height> <slices> <stacks> <output.3d>
 O engine recebe um ficheiro XML de configuração. Os caminhos dos modelos no XML são relativos à localização do próprio ficheiro XML.
 
 ```bash
-./engine/engine ../scenes/plane_only.xml
+./engine/engine ../scenes/plane.xml
+./engine/engine ../scenes/sphere.xml
+./engine/engine ../scenes/cylinder.xml
+./engine/engine ../scenes/torus.xml
 ./engine/engine ../scenes/test_all.xml
 ```
 
@@ -90,16 +97,23 @@ O engine recebe um ficheiro XML de configuração. Os caminhos dos modelos no XM
 
 ## Controlos
 
-| Tecla / Ação                | Efeito                                         |
-| ----------------------------- | ---------------------------------------------- |
-| `W`/`S`                   | Zoom in / out                                  |
-| `A`/`D`                   | Órbita horizontal                             |
-| `Q`/`E`                   | Órbita vertical                               |
-| `R`                         | Reset câmara para a posição definida no XML |
-| Rato (botão esq. + arrastar) | Órbita livre                                  |
-| `ESC`                       | Fechar                                         |
+| Tecla / Ação                | Efeito                                            |
+| ----------------------------- | ------------------------------------------------- |
+| `W`/`S`                   | Avança / recua ao longo de D (lookAt acompanha)  |
+| `A`/`D`                   | Órbita horizontal                                |
+| `Q`/`E`                   | Órbita vertical                                  |
+| `R`                         | Reset câmara para a posição definida no XML    |
+| `M`                         | Cicla modo: Wireframe → Solid → Solid+Wireframe |
+| `X`                         | Toggle eixos XYZ                                  |
+| Scroll do rato                | Zoom in / out                                     |
+| Rato (botão esq. + arrastar) | Órbita livre                                     |
+| `ESC`                       | Fechar                                            |
+
+O título da janela mostra em tempo real o FPS, o modo de renderização ativo e o estado dos eixos
 
 ---
+
+
 
 ## Formato dos ficheiros `.3d`
 

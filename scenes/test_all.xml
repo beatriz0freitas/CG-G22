@@ -1,8 +1,8 @@
-<!-- Testa todas as primitivas ao mesmo tempo -->
+<!-- Testa todas as primitivas: plane, box, sphere, cone, cylinder, torus -->
 <world>
-    <window width="800" height="600" />
+    <window width="1024" height="768" />
     <camera>
-        <position x="5" y="4" z="5" />
+        <position x="8" y="6" z="8" />
         <lookAt x="0" y="0" z="0" />
         <up x="0" y="1" z="0" />
         <projection fov="60" near="1" far="1000" />
@@ -13,6 +13,8 @@
             <model file="../models/box.3d" />
             <model file="../models/sphere.3d" />
             <model file="../models/cone.3d" />
+            <model file="../models/cylinder.3d" />
+            <model file="../models/torus.3d" />
         </models>
     </group>
 </world>
