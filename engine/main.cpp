@@ -121,7 +121,9 @@ int main(int argc, char* argv[]) {
     glutCreateWindow("CG Engine");
 
     glEnable(GL_DEPTH_TEST);
-    glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+    glEnable(GL_CULL_FACE);       
+    glCullFace(GL_BACK);
+    glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
 
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();

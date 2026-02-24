@@ -9,7 +9,7 @@
 // Desenha um Group e os seus filhos recursivamente - por agora sem transforms, sem filhos.
 static void renderGroup(const Group& group) {
 
-    glColor3f(1.0f, 1.0f, 1.0f);
+    glColor3f(0.0f, 0.0f, 0.0f);
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
     for (const auto& mesh : group.meshes) {
