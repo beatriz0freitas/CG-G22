@@ -48,7 +48,7 @@ static void renderGroup(const Group& group) {
     switch (g_renderMode) {
 
         case RenderMode::WIREFRAME:
-            glColor3f(1.0f, 1.0f, 1.0f);
+            glColor3f(0.0f, 0.0f, 0.0f);
             glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
             renderGroupGeometry(group);
             break;
