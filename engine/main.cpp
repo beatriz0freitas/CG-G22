@@ -1,11 +1,18 @@
 /*
  * Controlos:
- *   W / S            – zoom in / out
- *   A / D            – órbita horizontal
- *   Q / E            – órbita vertical
- *   R                – reset câmara para a posição do XML
- *   ESC              – sair
+ *   W / S            – avança / recua ao longo de D (FPS, lookAt acompanha)
+ *   A / D            – órbita horizontal (Explorer Mode)
+ *   Q / E            – órbita vertical   (Explorer Mode)
+ *   R                – reset câmara para a posição definida no XML
+ *   M                – cicla modo de renderização (wireframe → solid → solid+wire)
+ *   X                – toggle eixos XYZ
+ *   Scroll           – zoom in / out (altera radius)
  *   Rato (esq.+drag) – órbita livre
+ *   ESC              – sair
+ *
+ * Modelo de câmara:
+ *   Explorer Mode — alpha/beta/radius → coordenadas cartesianas via esféricas
+ *   FPS forward   — P' = P + k×D,  lookAt' = lookAt + k×D  (slide 6)
  */
 
 #ifdef __APPLE__
@@ -16,24 +23,31 @@
 
 #include <cmath>
 #include <cstdio>
+#include <cstring>
 
 #include "scene.h"
 #include "xmlParser.h"
 #include "renderer.h"
 
-// Estado global
+// ── Estado global ──
 static Scene g_scene;
+static Camera g_initCamera;  // posição original do XML para o reset com R
 
-// Câmara orbital: o olho orbita em torno do lookAt
-static float g_alpha  = 0.0f;  // ângulo horizontal
-static float g_beta   = 0.3f;  // ângulo vertical
-static float g_radius = 5.0f;  // distância ao lookAt
+// Câmara orbital
+static float g_alpha  = 0.0f;
+static float g_beta   = 0.3f;
+static float g_radius = 5.0f;
 
 // Rato
 static bool g_drag = false;
 static int  g_mx = 0, g_my = 0;
 
-// Câmara orbital
+// FPS
+static int   g_frames   = 0;
+static float g_fps      = 0.0f;
+static int   g_lastTime = 0;
+
+// ── Câmara orbital ──
 static void applyOrbit() {
     Camera& c = g_scene.camera;
     c.position.x = c.lookAt.x + g_radius * cosf(g_beta) * sinf(g_alpha);
@@ -41,20 +55,52 @@ static void applyOrbit() {
     c.position.z = c.lookAt.z + g_radius * cosf(g_beta) * cosf(g_alpha);
 }
 
-static void initOrbit() {
-    Camera& c = g_scene.camera;
+// Calcula alpha/beta/radius a partir de uma posição de câmara
+static void orbitFromCamera(const Camera& c) {
     float dx = c.position.x - c.lookAt.x;
     float dy = c.position.y - c.lookAt.y;
     float dz = c.position.z - c.lookAt.z;
     g_radius = sqrtf(dx*dx + dy*dy + dz*dz);
+    if (g_radius < 0.001f) g_radius = 1.0f;
     g_beta   = asinf(dy / g_radius);
     g_alpha  = atan2f(dx, dz);
 }
 
-// Callbacks GLUT
+static void initOrbit() {
+    orbitFromCamera(g_initCamera);
+    g_scene.camera.lookAt = g_initCamera.lookAt;  // restaura lookAt também
+}
+
+// Atualiza o título da janela com FPS e modo de renderização
+static void updateTitle() {
+    const char* modeStr = "";
+    switch (g_renderMode) {
+        case RenderMode::WIREFRAME:  modeStr = "Wireframe";       break;
+        case RenderMode::SOLID:      modeStr = "Solid";           break;
+        case RenderMode::SOLID_WIRE: modeStr = "Solid+Wireframe"; break;
+    }
+    char title[128];
+    snprintf(title, sizeof(title),
+             "CG Engine  |  %.1f FPS  |  %s  |  Eixos: %s  |  r=%.2f",
+             g_fps, modeStr, g_showAxes ? "on" : "off", g_radius);
+    glutSetWindowTitle(title);
+}
+
+// ── Callbacks GLUT ──
 static void display() {
     renderScene(g_scene);
     glutSwapBuffers();
+
+    // Contagem de FPS
+    ++g_frames;
+    int now = glutGet(GLUT_ELAPSED_TIME);
+    int dt  = now - g_lastTime;
+    if (dt >= 500) {                            // atualiza a cada 500 ms
+        g_fps      = g_frames * 1000.0f / dt;
+        g_frames   = 0;
+        g_lastTime = now;
+        updateTitle();
+    }
 }
 
 static void reshape(int w, int h) {
@@ -68,18 +114,40 @@ static void reshape(int w, int h) {
 }
 
 static void keyboard(unsigned char key, int, int) {
-    float step = g_radius * 0.05f;
+    Camera& c = g_scene.camera;
+
     switch (key) {
-        case 'w': case 'W': g_radius -= step; if (g_radius < 0.1f) g_radius = 0.1f; break;
-        case 's': case 'S': g_radius += step; break;
-        case 'a': case 'A': g_alpha  -= 0.05f; break;
-        case 'd': case 'D': g_alpha  += 0.05f; break;
-        case 'q': case 'Q': g_beta   += 0.05f; if (g_beta >  1.5f) g_beta =  1.5f; break;
-        case 'e': case 'E': g_beta   -= 0.05f; if (g_beta < -1.5f) g_beta = -1.5f; break;
+        // ── FPS forward/backward: P' = P + k*D,  lookAt' = lookAt + k*D  ──
+        // D é unitário por construção: ||D||² = cos²β·sin²α + sin²β + cos²β·cos²α = 1
+        case 'w': case 'W': {
+            float k  =  g_radius * 0.05f;
+            float dx = cosf(g_beta) * sinf(g_alpha);
+            float dy = sinf(g_beta);
+            float dz = cosf(g_beta) * cosf(g_alpha);
+            c.lookAt.x += k * dx;  c.lookAt.y += k * dy;  c.lookAt.z += k * dz;
+            break;
+        }
+        case 's': case 'S': {
+            float k  =  g_radius * 0.05f;
+            float dx = cosf(g_beta) * sinf(g_alpha);
+            float dy = sinf(g_beta);
+            float dz = cosf(g_beta) * cosf(g_alpha);
+            c.lookAt.x -= k * dx;  c.lookAt.y -= k * dy;  c.lookAt.z -= k * dz;
+            break;
+        }
+        // ── Explorer Mode orbit ──
+        case 'a': case 'A': g_alpha -= 0.05f; break;
+        case 'd': case 'D': g_alpha += 0.05f; break;
+        case 'q': case 'Q': g_beta  += 0.05f; if (g_beta >  1.5f) g_beta =  1.5f; break;
+        case 'e': case 'E': g_beta  -= 0.05f; if (g_beta < -1.5f) g_beta = -1.5f; break;
+
         case 'r': case 'R': initOrbit(); break;
+        case 'm': case 'M': toggleRenderMode(); break;
+        case 'x': case 'X': g_showAxes = !g_showAxes; break;
         case 27:  exit(0);
     }
     applyOrbit();
+    updateTitle();
     glutPostRedisplay();
 }
 
@@ -88,6 +156,9 @@ static void mouseButton(int btn, int state, int x, int y) {
         g_drag = (state == GLUT_DOWN);
         g_mx = x; g_my = y;
     }
+    // Scroll do rato: zoom
+    if (btn == 3) { g_radius *= 0.95f; if (g_radius < 0.1f) g_radius = 0.1f; applyOrbit(); glutPostRedisplay(); }
+    if (btn == 4) { g_radius *= 1.05f; applyOrbit(); glutPostRedisplay(); }
 }
 
 static void mouseMove(int x, int y) {
@@ -108,9 +179,16 @@ int main(int argc, char* argv[]) {
     }
 
     printf("A carregar: %s\n", argv[1]);
-    if (!parseXML(argv[1], g_scene)) 
+    if (!parseXML(argv[1], g_scene))
         return 1;
-    printf("Pronto: %zu modelo(s) carregado(s).\n",g_scene.root.meshes.size());
+    g_initCamera = g_scene.camera;  // guarda estado original para reset com R
+
+    // Conta o total de triângulos carregados
+    size_t totalTris = 0;
+    for (const auto& mesh : g_scene.root.meshes)
+        totalTris += mesh.verts.size() / 3;
+    printf("Pronto: %zu modelo(s), %zu triangulo(s) total.\n",
+           g_scene.root.meshes.size(), totalTris);
 
     initOrbit();
     applyOrbit();
@@ -121,7 +199,7 @@ int main(int argc, char* argv[]) {
     glutCreateWindow("CG Engine");
 
     glEnable(GL_DEPTH_TEST);
-    glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+    glClearColor(0.08f, 0.08f, 0.12f, 1.0f);   // fundo azul-escuro (melhor contraste)
 
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
@@ -137,7 +215,9 @@ int main(int argc, char* argv[]) {
     glutMouseFunc(mouseButton);
     glutMotionFunc(mouseMove);
 
-    //rendererInit(g_scene);
+    g_lastTime = glutGet(GLUT_ELAPSED_TIME);
+    updateTitle();
+
     glutMainLoop();
     return 0;
 }
