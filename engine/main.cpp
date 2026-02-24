@@ -1,9 +1,4 @@
 /*
- * CG Engine — main.cpp
- *
- * Responsabilidade deste ficheiro: inicialização, callbacks GLUT,
- * e câmara orbital. Nada de parsing nem de lógica de desenho.
- *
  * Controlos:
  *   W / S            – zoom in / out
  *   A / D            – órbita horizontal
@@ -26,10 +21,7 @@
 #include "xmlParser.h"
 #include "renderer.h"
 
-// ─────────────────────────────────────────────────────────────────────
 // Estado global
-// ─────────────────────────────────────────────────────────────────────
-
 static Scene g_scene;
 
 // Câmara orbital: o olho orbita em torno do lookAt
@@ -41,10 +33,7 @@ static float g_radius = 5.0f;  // distância ao lookAt
 static bool g_drag = false;
 static int  g_mx = 0, g_my = 0;
 
-// ─────────────────────────────────────────────────────────────────────
 // Câmara orbital
-// ─────────────────────────────────────────────────────────────────────
-
 static void applyOrbit() {
     Camera& c = g_scene.camera;
     c.position.x = c.lookAt.x + g_radius * cosf(g_beta) * sinf(g_alpha);
@@ -62,10 +51,7 @@ static void initOrbit() {
     g_alpha  = atan2f(dx, dz);
 }
 
-// ─────────────────────────────────────────────────────────────────────
 // Callbacks GLUT
-// ─────────────────────────────────────────────────────────────────────
-
 static void display() {
     renderScene(g_scene);
     glutSwapBuffers();
@@ -115,10 +101,6 @@ static void mouseMove(int x, int y) {
     glutPostRedisplay();
 }
 
-// ─────────────────────────────────────────────────────────────────────
-// main
-// ─────────────────────────────────────────────────────────────────────
-
 int main(int argc, char* argv[]) {
     if (argc < 2) {
         fprintf(stderr, "Uso: engine <config.xml>\n");
@@ -126,9 +108,9 @@ int main(int argc, char* argv[]) {
     }
 
     printf("A carregar: %s\n", argv[1]);
-    if (!parseXML(argv[1], g_scene)) return 1;
-    printf("Pronto: %zu modelo(s) carregado(s).\n",
-           g_scene.root.meshes.size());
+    if (!parseXML(argv[1], g_scene)) 
+        return 1;
+    printf("Pronto: %zu modelo(s) carregado(s).\n",g_scene.root.meshes.size());
 
     initOrbit();
     applyOrbit();
@@ -155,7 +137,7 @@ int main(int argc, char* argv[]) {
     glutMouseFunc(mouseButton);
     glutMotionFunc(mouseMove);
 
-    rendererInit(g_scene);
+    //rendererInit(g_scene);
     glutMainLoop();
     return 0;
 }

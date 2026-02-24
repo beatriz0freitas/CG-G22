@@ -10,8 +10,7 @@ Model generatePlane(float length, int divisions) {
         for (int j = 0; j < divisions; ++j) {
             float z0 = -half + j * step, z1 = z0 + step;
 
-            // Normal do plano aponta para +Y — preenchida desde já
-            // U,V ficam a 0 na Fase 1, preenchidos na Fase 4
+            // Normal do plano aponta para +Y 
             Vertex A = {x0, 0, z1,  0,1,0,  0,0};
             Vertex B = {x1, 0, z1,  0,1,0,  0,0};
             Vertex C = {x0, 0, z0,  0,1,0,  0,0};

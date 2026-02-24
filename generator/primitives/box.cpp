@@ -18,7 +18,6 @@ Model generateBox(float size, int divisions) {
             float c = -h + j * step, d = c + step;
 
             // Cada face tem a sua normal a apontar para fora.
-            // U,V ficam a 0 na Fase 1, preenchidos na Fase 4.
             // Topo (+Y)
             quad(m, {a,h,d, 0,1,0, 0,0}, {b,h,d, 0,1,0, 0,0},
                     {a,h,c, 0,1,0, 0,0}, {b,h,c, 0,1,0, 0,0});

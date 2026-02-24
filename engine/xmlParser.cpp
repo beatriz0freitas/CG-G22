@@ -56,8 +56,7 @@ static void XMLCALL onStart(void* ud, const XML_Char* name, const XML_Char** att
                 mesh.verts.resize(n);
                 for (int i = 0; i < n; ++i) {
                     auto& v = mesh.verts[i];
-                    // Lê os 8 campos: posição + normal + UV
-                    // Formato: x y z nx ny nz u v
+                    // Lê os 8 campos: posição + normal + UV. Formato: x y z nx ny nz u v
                     fscanf(mf, "%f %f %f %f %f %f %f %f",
                            &v.x,  &v.y,  &v.z,
                            &v.nx, &v.ny, &v.nz,
@@ -72,18 +71,6 @@ static void XMLCALL onStart(void* ud, const XML_Char* name, const XML_Char** att
                         mesh.filename.c_str());
             }
         }
-
-    // ── Fase 2 ────────────────────────────────────────────────────
-    // } else if (strcmp(name, "group") == 0) {
-    //     ps->currentGroup->children.emplace_back();
-    //     ps->currentGroup = &ps->currentGroup->children.back();
-    // } else if (strcmp(name, "translate") == 0) { ...
-    // } else if (strcmp(name, "rotate") == 0) { ...
-    // } else if (strcmp(name, "scale") == 0) { ...
-
-    // ── Fase 4 ────────────────────────────────────────────────────
-    // } else if (strcmp(name, "light") == 0) { ...
-    // } else if (strcmp(name, "texture") == 0) { ...
     }
 }
 
