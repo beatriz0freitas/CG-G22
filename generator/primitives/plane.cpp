@@ -16,10 +16,12 @@ Model generatePlane(float length, int divisions) {
             Vertex C = {x0, 0, z0,  0,1,0,  0,0};
             Vertex D = {x1, 0, z0,  0,1,0,  0,0};
 
-            // Triângulo 1
+            // Face de cima (normal +Y, CCW visto de cima)
             m.push_back(A); m.push_back(B); m.push_back(C);
-            // Triângulo 2
             m.push_back(C); m.push_back(B); m.push_back(D);
+            // Face de baixo (normal -Y, CCW visto de baixo)
+            m.push_back(C); m.push_back(B); m.push_back(A);
+            m.push_back(D); m.push_back(B); m.push_back(C);
         }
     }
     return m;
