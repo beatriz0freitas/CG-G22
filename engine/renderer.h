@@ -17,5 +17,5 @@ extern bool       g_showAxes;
 // Cicla para o próximo modo de renderização
 void toggleRenderMode();
 
-// Desenha um frame completo da cena
-void renderScene(const Scene& scene);
+// Desenha um frame completo da cena (objOffset desloca os objetos)
+void renderScene(const Scene& scene, const Vec3& objOffset);
