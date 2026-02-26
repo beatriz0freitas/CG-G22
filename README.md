@@ -10,10 +10,10 @@ Motor 3D minimalista desenvolvido no âmbito da UC de Computação Gráfica. Lê
 
 Estas ferramentas são necessárias para compilar o projeto e devem ser instaladas manualmente caso ainda não estejam disponíveis no sistema.
 
-| Ferramenta   | Versão mínima | Instalação                                 |
-| ------------ | --------------- | -------------------------------------------- |
-| GCC ou Clang | 7+              | [gcc.gnu.org](https://gcc.gnu.org)              |
-| CMake        | 3.10+           | [cmake.org/install](https://cmake.org/install/) |
+| Ferramenta   | Versão mínima | Instalação                                      |
+| ------------ | ------------- | ----------------------------------------------- |
+| GCC ou Clang | 7+            | [gcc.gnu.org](https://gcc.gnu.org)              |
+| CMake        | 3.10+         | [cmake.org/install](https://cmake.org/install/) |
 
 ### Bibliotecas específicas do projeto
 
@@ -32,10 +32,10 @@ brew install expat
 > O GLUT está incluído no macOS via `GLUT.framework` (parte do Xcode Command Line Tools).
 > Instala com: `xcode-select --install`
 
-| Biblioteca | Utilização                                      |
+| Biblioteca | Utilização                                        |
 | ---------- | ------------------------------------------------- |
 | freeGLUT   | Janela OpenGL, callbacks de input, loop principal |
-| expat      | Parsing do ficheiro XML de configuração da cena |
+| expat      | Parsing do ficheiro XML de configuração da cena   |
 
 ---
 
@@ -97,23 +97,21 @@ O engine recebe um ficheiro XML de configuração. Os caminhos dos modelos no XM
 
 ## Controlos
 
-| Tecla / Ação                | Efeito                                            |
-| ----------------------------- | ------------------------------------------------- |
-| `W`/`S`                   | Avança / recua ao longo de D (lookAt acompanha)  |
-| `A`/`D`                   | Órbita horizontal                                |
-| `Q`/`E`                   | Órbita vertical                                  |
-| `R`                         | Reset câmara para a posição definida no XML    |
-| `M`                         | Cicla modo: Wireframe → Solid → Solid+Wireframe |
-| `X`                         | Toggle eixos XYZ                                  |
-| Scroll do rato                | Zoom in / out                                     |
-| Rato (botão esq. + arrastar) | Órbita livre                                     |
-| `ESC`                       | Fechar                                            |
+| Tecla / Ação                 | Efeito                                          |
+| ---------------------------- | ----------------------------------------------- |
+| `W`/`S`                      | Avança / recua ao longo de D (lookAt acompanha) |
+| `A`/`D`                      | Órbita horizontal                               |
+| `Q`/`E`                      | Órbita vertical                                 |
+| `R`                          | Reset câmara para a posição definida no XML     |
+| `M`                          | Cicla modo: Wireframe → Solid → Solid+Wireframe |
+| `X`                          | Toggle eixos XYZ                                |
+| Scroll do rato               | Zoom in / out                                   |
+| Rato (botão esq. + arrastar) | Órbita livre                                    |
+| `ESC`                        | Fechar                                          |
 
 O título da janela mostra em tempo real o FPS, o modo de renderização ativo e o estado dos eixos
 
 ---
-
-
 
 ## Formato dos ficheiros `.3d`
 
@@ -128,8 +126,35 @@ x y z nx ny nz u v
 
 Cada 3 vértices consecutivos formam um triângulo. Os campos têm o seguinte significado:
 
-| Campo        | Descrição            | Fase em que é preenchido |
-| ------------ | ---------------------- | ------------------------- |
-| `x y z`    | Posição do vértice  | Fase 1                    |
-| `nx ny nz` | Normal do vértice     | Fase 4                    |
-| `u v`      | Coordenadas de textura | Fase 4                    |
+| Campo      | Descrição              | Fase em que é preenchido |
+| ---------- | ---------------------- | ------------------------ |
+| `x y z`    | Posição do vértice     | Fase 1                   |
+| `nx ny nz` | Normal do vértice      | Fase 4                   |
+| `u v`      | Coordenadas de textura | Fase 4                   |
+
+## Script de Automação (`run.sh`)
+
+O projeto inclui um script que automatiza:
+
+- Compilação com CMake
+- Geração automática dos modelos `.3d`
+- Execução dos testes da Fase 1
+- Limpeza da build e ficheiros gerados
+
+---
+
+### Dar permissões de execução
+
+```bash
+chmod +x run.sh
+```
+
+| Comando                           | Efeito                                                        |
+| --------------------------------- | ------------------------------------------------------------- |
+| `./run.sh`                        | Compila + gera todos os modelos + corre os 5 testes da Fase 1 |
+| `./run.sh --build-only`           | Apenas compila                                                |
+| `./run.sh --no-tests`             | Compila + gera modelos (sem abrir o engine)                   |
+| `./run.sh --test <n>`             | Corre apenas o teste N (1–5)                                  |
+| `./run.sh --scene <ficheiro.xml>` | Abre uma scene arbitrária                                     |
+| `./run.sh --clean`                | Remove `build/` e modelos gerados                             |
+| `./run.sh --help`                 | Mostra a ajuda                                                |
