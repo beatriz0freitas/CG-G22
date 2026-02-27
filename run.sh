@@ -27,7 +27,7 @@ cd "$SCRIPT_DIR"
 
 BUILD_DIR="$SCRIPT_DIR/build"
 MODELS_DIR="$SCRIPT_DIR/models"
-TEST_DIR="$SCRIPT_DIR/test files/test_files_phase_1"
+TEST_DIR="$SCRIPT_DIR/test_files/test_files_phase_1"
 
 GENERATOR="$BUILD_DIR/generator/generator"
 ENGINE="$BUILD_DIR/engine/engine"
