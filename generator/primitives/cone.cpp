@@ -44,8 +44,8 @@ Model generateCone(float radius, float height, int slices, int stacks)
 
             m.push_back(v00);
             m.push_back(v01);
-            m.push_back(v11);
-            m.push_back(v00);
+            m.push_back(v10);
+            m.push_back(v01);
             m.push_back(v11);
             m.push_back(v10);
         }
