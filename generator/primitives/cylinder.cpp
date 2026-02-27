@@ -45,8 +45,8 @@ Model generateCylinder(float radius, float height, int slices, int stacks, bool 
             Vertex v11 = makeLatVert(theta1, y1, tu1, tv1);
 
             // CCW visto de fora
-            m.push_back(v00); m.push_back(v01); m.push_back(v11);
-            m.push_back(v00); m.push_back(v11); m.push_back(v10);
+            m.push_back(v00); m.push_back(v01); m.push_back(v10);
+            m.push_back(v01); m.push_back(v11); m.push_back(v10);
         }
     }
 
