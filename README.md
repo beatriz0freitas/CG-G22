@@ -1,6 +1,6 @@
 # CG Engine — Fase 1
 
-Motor 3D minimalista desenvolvido no âmbito da UC de Computação Gráfica. Lê uma cena descrita em XML e renderiza os modelos em wireframe com navegação orbital interativa.
+Motor 3D minimalista desenvolvido no âmbito da UC de Computação Gráfica. Lê uma cena descrita em XML e renderiza os modelos em três modos (Wireframe, Solid, Solid+Wireframe) com navegação orbital e translação interativas.
 
 ---
 
@@ -99,14 +99,17 @@ O engine recebe um ficheiro XML de configuração. Os caminhos dos modelos no XM
 
 | Tecla / Ação                 | Efeito                                          |
 | ---------------------------- | ----------------------------------------------- |
-| `W`/`S`                      | Avança / recua ao longo de D (lookAt acompanha) |
-| `A`/`D`                      | Órbita horizontal                               |
-| `Q`/`E`                      | Órbita vertical                                 |
-| `R`                          | Reset câmara para a posição definida no XML     |
+| `W`/`S`                      | Órbita vertical (altera β)                      |
+| `A`/`D`                      | Órbita horizontal (altera α)                    |
+| `Q`/`E`                      | Zoom in / out (altera r)                        |
+| Seta ↑ / ↓                   | Avanço / recuo no plano XZ                      |
+| Seta ← / →                   | Deslocamento lateral (strafe)                   |
+| `Z`/`X`                      | Subir / descer (eixo Y)                         |
+| Rato (botão esq. + arrastar) | Órbita livre (altera α e β)                     |
+| Scroll do rato               | Zoom in / out (altera r)                        |
 | `M`                          | Cicla modo: Wireframe → Solid → Solid+Wireframe |
-| `X`                          | Toggle eixos XYZ                                |
-| Scroll do rato               | Zoom in / out                                   |
-| Rato (botão esq. + arrastar) | Órbita livre                                    |
+| `B`                          | Toggle eixos XYZ                                |
+| `R`                          | Reset câmara para a posição definida no XML     |
 | `ESC`                        | Fechar                                          |
 
 O título da janela mostra em tempo real o FPS, o modo de renderização ativo e o estado dos eixos
