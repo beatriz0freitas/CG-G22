@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # =============================================================================
-# run_scenes.sh — Corre as scenes da pasta scenes/
+# run_scenes.sh — Compila, gera modelos e corre as scenes da pasta scenes/
 #
 # Uso:
-#   ./run_scenes.sh                  → corre todas as scenes em sequência
-#   ./run_scenes.sh --scene <nome>   → corre só uma scene (ex: cone, sphere, ...)
+#   ./run_scenes.sh                  → compila + gera modelos + corre todas as scenes
+#   ./run_scenes.sh --scene <nome>   → compila + gera modelos + corre só uma scene
 #   ./run_scenes.sh --list           → lista as scenes disponíveis
 #   ./run_scenes.sh --help           → mostra esta ajuda
 # =============================================================================
@@ -23,7 +23,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
 BUILD_DIR="$SCRIPT_DIR/build"
+MODELS_DIR="$SCRIPT_DIR/models"
 SCENES_DIR="$SCRIPT_DIR/scenes"
+GENERATOR="$BUILD_DIR/generator/generator"
 ENGINE="$BUILD_DIR/engine/engine"
 
 SCENES=(
@@ -45,8 +47,8 @@ while [[ $# -gt 0 ]]; do
         --list)  MODE="list" ;;
         --help|-h)
             echo "Uso:"
-            echo "  ./run_scenes.sh                  → corre todas as scenes"
-            echo "  ./run_scenes.sh --scene <nome>   → corre só uma (ex: cone)"
+            echo "  ./run_scenes.sh                  → compila + gera + corre todas as scenes"
+            echo "  ./run_scenes.sh --scene <nome>   → compila + gera + corre só uma (ex: cone)"
             echo "  ./run_scenes.sh --list           → lista as scenes disponíveis"
             exit 0
             ;;
@@ -55,11 +57,56 @@ while [[ $# -gt 0 ]]; do
     shift
 done
 
-# Verifica se o engine existe
-[[ -x "$ENGINE" ]] || error "Engine não encontrado: $ENGINE\nCompila primeiro com ./run.sh --build-only"
+# ── 1. COMPILAÇÃO ────────────────────────────────────────────────────────────
+header "COMPILAÇÃO"
 
-# Verifica se a pasta scenes existe
-[[ -d "$SCENES_DIR" ]] || error "Pasta scenes não encontrada: $SCENES_DIR"
+mkdir -p "$BUILD_DIR"
+cd "$BUILD_DIR"
+
+info "cmake configure ..."
+cmake .. -DCMAKE_BUILD_TYPE=Release 2>&1 | grep -E "(error:|warning:|--)" || true
+
+JOBS=$(nproc 2>/dev/null || sysctl -n hw.logicalcpu 2>/dev/null || echo 4)
+info "cmake build (-j$JOBS) ..."
+cmake --build . -- -j"$JOBS"
+
+[[ -x "$GENERATOR" ]] || error "generator não foi criado: $GENERATOR"
+[[ -x "$ENGINE"    ]] || error "engine não foi criado: $ENGINE"
+info "Compilação OK."
+
+cd "$SCRIPT_DIR"
+
+# ── 2. GERAÇÃO DE MODELOS ────────────────────────────────────────────────────
+header "GERAÇÃO DE MODELOS"
+
+gen() {
+    info "generator $*"
+    "$GENERATOR" "$@"
+}
+
+mkdir -p "$MODELS_DIR"
+gen plane    1   3         "$MODELS_DIR/plane.3d"
+gen box      2   3         "$MODELS_DIR/box.3d"
+gen sphere   1   10  10    "$MODELS_DIR/sphere.3d"
+gen cone     1   2   4   3 "$MODELS_DIR/cone.3d"
+gen cylinder 1   2   16  4 "$MODELS_DIR/cylinder.3d"
+gen torus    1   0.3 16 32 "$MODELS_DIR/torus.3d"
+
+info "Modelos gerados em $MODELS_DIR"
+
+# ── 3. SCENES ────────────────────────────────────────────────────────────────
+if [[ "$MODE" == "list" ]]; then
+    header "SCENES DISPONÍVEIS"
+    for s in "${SCENES[@]}"; do
+        xml="$SCENES_DIR/${s}.xml"
+        if [[ -f "$xml" ]]; then
+            info "$s"
+        else
+            warn "$s  (ficheiro não encontrado)"
+        fi
+    done
+    exit 0
+fi
 
 run_scene() {
     local name="$1"
@@ -72,21 +119,10 @@ run_scene() {
     "$ENGINE" "$xml"
 }
 
-if [[ "$MODE" == "list" ]]; then
-    header "SCENES DISPONÍVEIS"
-    for s in "${SCENES[@]}"; do
-        xml="$SCENES_DIR/${s}.xml"
-        if [[ -f "$xml" ]]; then
-            info "$s"
-        else
-            warn "$s  (ficheiro não encontrado)"
-        fi
-    done
-
-elif [[ "$MODE" == "one" ]]; then
+if [[ "$MODE" == "one" ]]; then
     [[ -z "$SCENE_NAME" ]] && error "--scene requer um nome (ex: cone)"
+    header "A CORRER SCENE: $SCENE_NAME"
     run_scene "$SCENE_NAME"
-
 else
     header "A CORRER TODAS AS SCENES"
     echo -e "  ${YELLOW}Fecha cada janela para avançar para a próxima.${NC}"
