@@ -1,11 +1,14 @@
 /*
  * Controlos:
- *   W / S            – avança / recua ao longo de D (FPS, lookAt acompanha)
+ *   W / S            – órbita vertical   (Explorer Mode)
  *   A / D            – órbita horizontal (Explorer Mode)
- *   Q / E            – órbita vertical   (Explorer Mode)
+ *   Seta Cima/Baixo  – avança / recua (move position no plano XZ)
+ *   Seta Esq./Dir.   – strafe lateral  (move position no plano XZ)
+ *   Z / X            – sobe / desce    (move position em Y) 
  *   R                – reset câmara para a posição definida no XML
  *   M                – cicla modo de renderização (wireframe → solid → solid+wire)
- *   X                – toggle eixos XYZ
+ *   B                – toggle eixos XYZ 
+ *   Q / E            – zoom in / out (altera radius)
  *   Scroll           – zoom in / out (altera radius)
  *   Rato (esq.+drag) – órbita livre
  *   ESC              – sair
@@ -16,6 +19,7 @@
  */
 
 #ifdef __APPLE__
+#  define GL_SILENCE_DEPRECATION
 #  include <GLUT/glut.h>
 #else
 #  include <GL/glut.h>
@@ -113,39 +117,66 @@ static void reshape(int w, int h) {
     glMatrixMode(GL_MODELVIEW);
 }
 
+// Move a posição da câmara (e o lookAt o mesmo delta, para preservar a direção)
+static void translateCamera(Camera& c, float ox, float oy, float oz) {
+    c.position.x += ox;  c.position.y += oy;  c.position.z += oz;
+    c.lookAt.x   += ox;  c.lookAt.y   += oy;  c.lookAt.z   += oz;
+}
+
 static void keyboard(unsigned char key, int, int) {
     Camera& c = g_scene.camera;
 
     switch (key) {
-        // ── FPS forward/backward: P' = P + k*D,  lookAt' = lookAt + k*D  ──
-        // D é unitário por construção: ||D||² = cos²β·sin²α + sin²β + cos²β·cos²α = 1
-        case 'w': case 'W': {
-            float k  =  g_radius * 0.05f;
-            float dx = cosf(g_beta) * sinf(g_alpha);
-            float dy = sinf(g_beta);
-            float dz = cosf(g_beta) * cosf(g_alpha);
-            c.lookAt.x += k * dx;  c.lookAt.y += k * dy;  c.lookAt.z += k * dz;
-            break;
-        }
-        case 's': case 'S': {
-            float k  =  g_radius * 0.05f;
-            float dx = cosf(g_beta) * sinf(g_alpha);
-            float dy = sinf(g_beta);
-            float dz = cosf(g_beta) * cosf(g_alpha);
-            c.lookAt.x -= k * dx;  c.lookAt.y -= k * dy;  c.lookAt.z -= k * dz;
-            break;
-        }
-        // ── Explorer Mode orbit ──
+        // ── Explorer Mode orbit vertical ──
+        case 'w': case 'W': g_beta  += 0.05f; if (g_beta >  1.5f) g_beta =  1.5f; break;
+        case 's': case 'S': g_beta  -= 0.05f; if (g_beta < -1.5f) g_beta = -1.5f; break;
+        // ── Explorer Mode orbit horizontal ──
         case 'a': case 'A': g_alpha -= 0.05f; break;
         case 'd': case 'D': g_alpha += 0.05f; break;
-        case 'q': case 'Q': g_beta  += 0.05f; if (g_beta >  1.5f) g_beta =  1.5f; break;
-        case 'e': case 'E': g_beta  -= 0.05f; if (g_beta < -1.5f) g_beta = -1.5f; break;
+        // ── Zoom ──
+        case 'q': case 'Q': g_radius *= 0.95f; if (g_radius < 0.1f) g_radius = 0.1f; break;
+        case 'e': case 'E': g_radius *= 1.05f; break;
+        // ── Sobe / desce ──
+        case 'z': case 'Z': {
+            float k = g_radius * 0.05f;
+            translateCamera(c, 0.0f,  k, 0.0f);
+            orbitFromCamera(c);
+            break;
+        }
+        case 'x': case 'X': {
+            float k = g_radius * 0.05f;
+            translateCamera(c, 0.0f, -k, 0.0f);
+            orbitFromCamera(c);
+            break;
+        }
 
         case 'r': case 'R': initOrbit(); break;
         case 'm': case 'M': toggleRenderMode(); break;
-        case 'x': case 'X': g_showAxes = !g_showAxes; break;
+        case 'b': case 'B': g_showAxes = !g_showAxes; break;
         case 27:  exit(0);
     }
+    applyOrbit();
+    updateTitle();
+    glutPostRedisplay();
+}
+
+static void specialKey(int key, int, int) {
+    Camera& c = g_scene.camera;
+    float k    = g_radius * 0.05f;
+    // Vetor frente D (normalizado, no plano XZ — ignora componente vertical para pan horizontal)
+    float fdx = sinf(g_alpha);
+    float fdz = cosf(g_alpha);
+    // Vetor direita (perpendicular a D no plano XZ)
+    float rx =  cosf(g_alpha);
+    float rz = -sinf(g_alpha);
+    switch (key) {
+        case GLUT_KEY_UP:    translateCamera(c,  k*fdx, 0.0f,  k*fdz); break;
+        case GLUT_KEY_DOWN:  translateCamera(c, -k*fdx, 0.0f, -k*fdz); break;
+        case GLUT_KEY_RIGHT: translateCamera(c,  k*rx,  0.0f,  k*rz);  break;
+        case GLUT_KEY_LEFT:  translateCamera(c, -k*rx,  0.0f, -k*rz);  break;
+    }
+    // Recalcula alpha/beta/radius a partir da nova posição
+    orbitFromCamera(c);
     applyOrbit();
     updateTitle();
     glutPostRedisplay();
@@ -214,6 +245,7 @@ int main(int argc, char* argv[]) {
     glutDisplayFunc(display);
     glutReshapeFunc(reshape);
     glutKeyboardFunc(keyboard);
+    glutSpecialFunc(specialKey);
     glutMouseFunc(mouseButton);
     glutMotionFunc(mouseMove);
 
