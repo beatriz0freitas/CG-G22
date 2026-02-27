@@ -80,7 +80,7 @@ static void renderGroup(const Group& group) {
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 }
 
-void renderScene(const Scene& scene, const Vec3& objOffset) {
+void renderScene(const Scene& scene) {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glLoadIdentity();
 
@@ -90,11 +90,7 @@ void renderScene(const Scene& scene, const Vec3& objOffset) {
               c.lookAt.x,   c.lookAt.y,   c.lookAt.z,
               0.0f, 1.0f, 0.0f);
 
-    // Translação dos objetos controlada pelas teclas
-    glPushMatrix();
-    glTranslatef(objOffset.x, objOffset.y, objOffset.z);
     renderGroup(scene.root);
-    glPopMatrix();
 
     if (g_showAxes)
         drawAxes(2.0f);

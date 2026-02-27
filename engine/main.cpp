@@ -1,19 +1,18 @@
 /*
  * Controlos:
- *   W / S            – move objetos ao longo de Z
- *   A / D            – move objetos ao longo de X
- *   Q / E            – move objetos ao longo de Y
- *   R                – reset câmara e posição dos objetos
+ *   W / S            – avança / recua ao longo de D (FPS, lookAt acompanha)
+ *   A / D            – órbita horizontal (Explorer Mode)
+ *   Q / E            – órbita vertical   (Explorer Mode)
+ *   R                – reset câmara para a posição definida no XML
  *   M                – cicla modo de renderização (wireframe → solid → solid+wire)
  *   X                – toggle eixos XYZ
  *   Scroll           – zoom in / out (altera radius)
- *   Rato (esq.+drag) – órbita câmara em torno do eixo Y
+ *   Rato (esq.+drag) – órbita livre
  *   ESC              – sair
  *
  * Modelo de câmara:
  *   Explorer Mode — alpha/beta/radius → coordenadas cartesianas via esféricas
- *   Rato roda câmara horizontalmente (alpha), scroll controla zoom.
- *   Teclas movem o objeto no mundo.
+ *   FPS forward   — P' = P + k×D,  lookAt' = lookAt + k×D  (slide 6)
  */
 
 #ifdef __APPLE__
@@ -42,9 +41,6 @@ static float g_radius = 5.0f;
 // Rato
 static bool g_drag = false;
 static int  g_mx = 0, g_my = 0;
-
-// Translação dos objetos (controlada pelas teclas)
-static Vec3 g_objOffset = {0.0f, 0.0f, 0.0f};
 
 // FPS
 static int   g_frames   = 0;
@@ -92,7 +88,7 @@ static void updateTitle() {
 
 // ── Callbacks GLUT ──
 static void display() {
-    renderScene(g_scene, g_objOffset);
+    renderScene(g_scene);
     glutSwapBuffers();
 
     // Contagem de FPS
@@ -118,21 +114,34 @@ static void reshape(int w, int h) {
 }
 
 static void keyboard(unsigned char key, int, int) {
-    const float step = 0.2f;  // passo de translação dos objetos
+    Camera& c = g_scene.camera;
 
     switch (key) {
-        // ── Mover objetos pelos eixos ──
-        case 'w': case 'W': g_objOffset.z -= step; break;  // frente (-Z)
-        case 's': case 'S': g_objOffset.z += step; break;  // trás  (+Z)
-        case 'a': case 'A': g_objOffset.x -= step; break;  // esquerda (-X)
-        case 'd': case 'D': g_objOffset.x += step; break;  // direita  (+X)
-        case 'q': case 'Q': g_objOffset.y += step; break;  // cima  (+Y)
-        case 'e': case 'E': g_objOffset.y -= step; break;  // baixo (-Y)
-
-        case 'r': case 'R':
-            initOrbit();
-            g_objOffset = {0.0f, 0.0f, 0.0f};  // reset objetos também
+        // ── FPS forward/backward: P' = P + k*D,  lookAt' = lookAt + k*D  ──
+        // D é unitário por construção: ||D||² = cos²β·sin²α + sin²β + cos²β·cos²α = 1
+        case 'w': case 'W': {
+            float k  =  g_radius * 0.05f;
+            float dx = cosf(g_beta) * sinf(g_alpha);
+            float dy = sinf(g_beta);
+            float dz = cosf(g_beta) * cosf(g_alpha);
+            c.lookAt.x += k * dx;  c.lookAt.y += k * dy;  c.lookAt.z += k * dz;
             break;
+        }
+        case 's': case 'S': {
+            float k  =  g_radius * 0.05f;
+            float dx = cosf(g_beta) * sinf(g_alpha);
+            float dy = sinf(g_beta);
+            float dz = cosf(g_beta) * cosf(g_alpha);
+            c.lookAt.x -= k * dx;  c.lookAt.y -= k * dy;  c.lookAt.z -= k * dz;
+            break;
+        }
+        // ── Explorer Mode orbit ──
+        case 'a': case 'A': g_alpha -= 0.05f; break;
+        case 'd': case 'D': g_alpha += 0.05f; break;
+        case 'q': case 'Q': g_beta  += 0.05f; if (g_beta >  1.5f) g_beta =  1.5f; break;
+        case 'e': case 'E': g_beta  -= 0.05f; if (g_beta < -1.5f) g_beta = -1.5f; break;
+
+        case 'r': case 'R': initOrbit(); break;
         case 'm': case 'M': toggleRenderMode(); break;
         case 'x': case 'X': g_showAxes = !g_showAxes; break;
         case 27:  exit(0);
@@ -154,8 +163,10 @@ static void mouseButton(int btn, int state, int x, int y) {
 
 static void mouseMove(int x, int y) {
     if (!g_drag) return;
-    // Apenas rotação em torno do eixo Y (alpha)
     g_alpha += (x - g_mx) * 0.01f;
+    g_beta  -= (y - g_my) * 0.01f;
+    if (g_beta >  1.5f) g_beta =  1.5f;
+    if (g_beta < -1.5f) g_beta = -1.5f;
     g_mx = x; g_my = y;
     applyOrbit();
     glutPostRedisplay();
