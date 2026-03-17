@@ -45,8 +45,25 @@ static void renderGroupGeometry(const Group& group) {
 }
 
 static void renderGroup(const Group& group) {
-    switch (g_renderMode) {
+    glPushMatrix();   //guarda a matriz corrente na pilha
 
+    // Aplica as transforms deste grupo, pela ordem em que estão no XML
+    for (const auto& op : group.transforms) {
+        switch (op.type) {
+            case TransformType::TRANSLATE:
+                glTranslatef(op.a, op.b, op.c);
+                break;
+            case TransformType::ROTATE:
+                glRotatef(op.a, op.b, op.c, op.d);   // angle, x, y, z
+                break;
+            case TransformType::SCALE:
+                glScalef(op.a, op.b, op.c);
+                break;
+        }
+    }
+
+    // Desenha a geometria deste grupo
+    switch (g_renderMode) {
         case RenderMode::WIREFRAME:
             glColor3f(0.0f, 0.0f, 0.0f);
             glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -54,14 +71,12 @@ static void renderGroup(const Group& group) {
             break;
 
         case RenderMode::SOLID:
-            // Cor cinzento claro, modo sólido
             glColor3f(0.75f, 0.75f, 0.75f);
             glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
             renderGroupGeometry(group);
             break;
 
         case RenderMode::SOLID_WIRE: {
-            // Passe 1 — fill com offset para evitar z-fighting
             glEnable(GL_POLYGON_OFFSET_FILL);
             glPolygonOffset(1.0f, 1.0f);
             glColor3f(0.45f, 0.55f, 0.65f);
@@ -69,15 +84,19 @@ static void renderGroup(const Group& group) {
             renderGroupGeometry(group);
             glDisable(GL_POLYGON_OFFSET_FILL);
 
-            // Passe 2 — wireframe por cima
             glColor3f(0.15f, 0.85f, 0.55f);
             glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
             renderGroupGeometry(group);
             break;
         }
     }
-    // Repor para fill (para os eixos e outros elementos 2D)
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
+    // Filhos herdam a transform acumulada deste grupo
+    for (const auto& child : group.children)
+        renderGroup(child);
+
+    glPopMatrix();   // restaura a matriz que existia antes deste grupo
 }
 
 void renderScene(const Scene& scene) {
