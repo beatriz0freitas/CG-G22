@@ -19,17 +19,16 @@ void toggleRenderMode() {
 }
 
 // Desenha eixos XYZ
-static void drawAxes(float len = 2.0f) {
-    glLineWidth(2.0f);
-    glBegin(GL_LINES);
-        // X — vermelho
-        glColor3f(1,0,0); glVertex3f(0,0,0); glVertex3f(len,0,0);
-        // Y — verde
-        glColor3f(0,1,0); glVertex3f(0,0,0); glVertex3f(0,len,0);
-        // Z — azul
-        glColor3f(0,0,1); glVertex3f(0,0,0); glVertex3f(0,0,len);
-    glEnd();
+static void drawAxes() {
     glLineWidth(1.0f);
+
+    glBegin(GL_LINES);
+        glColor3f(0, 1, 0); glVertex3f(0, -100, 0); glVertex3f(0,  100, 0);
+        glColor3f(1, 0, 0); glVertex3f(-100, 0, 0); glVertex3f( 100, 0, 0);
+        glColor3f(0, 0, 1); glVertex3f(0, 0, -100); glVertex3f(0, 0,  100);
+    glEnd();
+
+    glDisable(GL_LINE_STIPPLE);
 }
 
 // Desenha todos os triângulos de um Group
@@ -110,5 +109,5 @@ void renderScene(const Scene& scene) {
     renderGroup(scene.root);
 
     if (g_showAxes)
-        drawAxes(2.0f);
+        drawAxes();
 }
