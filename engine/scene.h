@@ -20,8 +20,16 @@ struct Mesh {
     std::vector<Vertex> verts;
 };
 
+enum class TransformType { TRANSLATE, ROTATE, SCALE };
+
+struct TransformOp {
+    TransformType type;
+    float a = 0, b = 0, c = 0, d = 0;
+};
+
 // Group - lista plana de meshes, sem transform, sem filhos.
 struct Group {
+    std::vector<TransformOp> transforms;
     std::vector<Mesh>  meshes;
     std::vector<Group> children;
 };
