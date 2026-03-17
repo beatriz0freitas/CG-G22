@@ -92,6 +92,7 @@ Recebe um ficheiro XML de configuração da scene. Os caminhos dos modelos no XM
 | `ESC` | Fechar |
 
 ---
+<a name="runsh"></a>
 
 ## Script `run.sh`
 
