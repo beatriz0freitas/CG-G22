@@ -32,7 +32,7 @@ static void drawAxes(float len = 2.0f) {
     glLineWidth(1.0f);
 }
 
-// Desenha todos os triângulos de um Group (e filhos, recursivamente)
+// Desenha todos os triângulos de um Group
 static void renderGroupGeometry(const Group& group) {
     for (const auto& mesh : group.meshes) {
         glBegin(GL_TRIANGLES);
@@ -40,8 +40,6 @@ static void renderGroupGeometry(const Group& group) {
             glVertex3f(v.x, v.y, v.z);
         glEnd();
     }
-    for (const auto& child : group.children)
-        renderGroupGeometry(child);
 }
 
 static void renderGroup(const Group& group) {
