@@ -1,3 +1,5 @@
 build/
 models/*.3d
+test_files/**/*.3d
+vcpkg_installed/
 .DS_Store

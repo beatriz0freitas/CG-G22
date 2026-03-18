@@ -63,9 +63,9 @@ Model generateTorus(float outerRadius, float innerRadius, int sides, int rings) 
             Vertex v11 = makeVert(phi1, theta1, u1, v1);
 
             // Triângulo 1 (CCW visto de fora)
-            m.push_back(v00); m.push_back(v11); m.push_back(v01);
+            m.push_back(v00); m.push_back(v01); m.push_back(v11);
             // Triângulo 2
-            m.push_back(v00); m.push_back(v10); m.push_back(v11);
+            m.push_back(v00); m.push_back(v11); m.push_back(v10);
         }
     }
     return m;

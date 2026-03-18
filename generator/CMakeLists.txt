@@ -15,4 +15,13 @@ add_executable(generator
 )
 
 target_include_directories(generator PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(generator m)
+
+# Define _USE_MATH_DEFINES para M_PI no Windows
+if(WIN32)
+    target_compile_definitions(generator PRIVATE _USE_MATH_DEFINES)
+endif()
+
+# libm só existe em Unix/Linux; no Windows a matemática está na CRT
+if(NOT WIN32)
+    target_link_libraries(generator m)
+endif()
