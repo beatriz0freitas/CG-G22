@@ -12,6 +12,9 @@
 
 set -e
 
+# Muda para o diretorio raiz do projeto (um nivel acima de uteis/)
+cd "$(dirname "$0")"/.. || exit 1
+
 # abre o engine com um xml; devolve 1 se o ficheiro nao existir
 run_engine() {
     if [[ ! -f "$1" ]]; then
