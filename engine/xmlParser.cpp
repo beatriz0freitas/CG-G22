@@ -80,6 +80,7 @@ static void XMLCALL onStart(void* ud, const XML_Char* name, const XML_Char** att
         if (ps->groupStack.empty()) return;
         TransformOp op;
         op.type = TransformType::SCALE;
+        op.a = 1.0f; op.b = 1.0f; op.c = 1.0f;
         if (auto v = attr(atts, "x")) op.a = atof(v);
         if (auto v = attr(atts, "y")) op.b = atof(v);
         if (auto v = attr(atts, "z")) op.c = atof(v);
