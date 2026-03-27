@@ -226,8 +226,8 @@ static void specialKey(int key, int, int)
     Camera &c = g_scene.camera;
     float k = g_radius * 0.05f;
     // Vetor frente D (normalizado, no plano XZ — ignora componente vertical para pan horizontal)
-    float fdx = sinf(g_alpha);
-    float fdz = cosf(g_alpha);
+    float fdx = -sinf(g_alpha);
+    float fdz = -cosf(g_alpha);
     // Vetor direita (perpendicular a D no plano XZ)
     float rx = cosf(g_alpha);
     float rz = -sinf(g_alpha);
