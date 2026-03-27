@@ -139,14 +139,6 @@ O vetor D é calculado a partir de alpha e beta — é unitário por construçã
 
 Esta separação é fiel ao modelo descrito nos slides e evita a ambiguidade de ter W/S a fazer zoom orbital (o que seria concetualmente inconsistente com um motor de cena).
 
-### Face culling — decisão de não ativar na Fase 1
-
-O face culling (`glEnable(GL_CULL_FACE)`) não está ativo na Fase 1. A razão é que o rendering é feito em wireframe com `GL_FRONT_AND_BACK`, e com culling ativo metade das arestas seria removida, degradando a visualização.
-
-O culling será ativado no `rendererInit` a partir da Fase 4, quando o rendering passar a modo sólido com iluminação — contexto onde o culling tem impacto visual correto e benefício de performance real.
-
-O winding order (CCW) está definido corretamente em todas as primitivas desde já, pelo que ativar o culling na Fase 4 não exigirá alterações na geometria gerada.
-
 ### `up` vector fixo em (0, 1, 0)
 
 O `gluLookAt` usa sempre `up = (0, 1, 0)` hardcoded no renderer, conforme especificado nas orientações da UC. Isto é seguro porque `|beta| < 1.5` rad garante que a câmara nunca fica paralela ao eixo Y, evitando o gimbal lock.
