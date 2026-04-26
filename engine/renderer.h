@@ -5,7 +5,7 @@
 
 // Modos de renderização togglávéis com a tecla 'M'
 enum class RenderMode {
-    WIREFRAME,      // GL_LINE — modo atual Fase 1
+    WIREFRAME,      // GL_LINE — modo atual 
     SOLID,          // GL_FILL sem eixos
     SOLID_WIRE,     // GL_FILL + contornos (dois passes)
 };
@@ -13,6 +13,7 @@ enum class RenderMode {
 // Estado partilhado para o main.cpp poder ler
 extern RenderMode g_renderMode;
 extern bool       g_showAxes;
+extern float      g_time;   // segundos desde o início, actualizado pelo main
 
 // Cicla para o próximo modo de renderização
 void toggleRenderMode();

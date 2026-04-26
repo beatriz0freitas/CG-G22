@@ -8,8 +8,11 @@
 
 struct ParseState {
     Scene*               scene;
-    std::vector<Group*>  groupStack; 
+    std::vector<Group*>  groupStack;
     std::string          dir;
+    // Para acumular <point> dentro de um <translate time=...>
+    Group*  animGroup = nullptr;
+    size_t  animIdx   = 0;
 };
 
 static const char* attr(const XML_Char** atts, const char* key) {
@@ -22,7 +25,7 @@ static void XMLCALL onStart(void* ud, const XML_Char* name, const XML_Char** att
     auto* ps  = static_cast<ParseState*>(ud);
     Camera& c = ps->scene->camera;
 
-    // Câmara
+    // ── Câmara ──
     if (strcmp(name, "window") == 0) {
         if (auto v = attr(atts, "width"))  ps->scene->winW = atoi(v);
         if (auto v = attr(atts, "height")) ps->scene->winH = atoi(v);
@@ -47,33 +50,56 @@ static void XMLCALL onStart(void* ud, const XML_Char* name, const XML_Char** att
         if (auto v = attr(atts, "near")) c.nearP = atof(v);
         if (auto v = attr(atts, "far"))  c.farP  = atof(v);
 
-    // grupo
+    // ── Grupos ──
     } else if (strcmp(name, "group") == 0) {
-        // Cria um novo grupo filho do grupo atual e coloca-o na pilha
         Group* parent = ps->groupStack.empty()
                         ? &ps->scene->root
                         : ps->groupStack.back();
-        parent->children.emplace_back();          // adiciona filho vazio
+        parent->children.emplace_back();
         ps->groupStack.push_back(&parent->children.back());
 
-    // transforms 
+    // ── Transforms ──
     } else if (strcmp(name, "translate") == 0) {
         if (ps->groupStack.empty()) return;
         TransformOp op;
-        op.type = TransformType::TRANSLATE;
-        if (auto v = attr(atts, "x")) op.a = atof(v);
-        if (auto v = attr(atts, "y")) op.b = atof(v);
-        if (auto v = attr(atts, "z")) op.c = atof(v);
-        ps->groupStack.back()->transforms.push_back(op);
+
+        if (auto v = attr(atts, "time")) {
+            // Animado: Catmull-Rom
+            op.type  = TransformType::ANIM_TRANSLATE;
+            op.time  = atof(v);
+            op.align = attr(atts, "align") && strcmp(attr(atts, "align"), "true") == 0;
+            ps->groupStack.back()->transforms.push_back(op);
+            // Guarda referência para acumular <point>
+            ps->animGroup = ps->groupStack.back();
+            ps->animIdx   = ps->animGroup->transforms.size() - 1;
+        } else {
+            // Estático
+            op.type = TransformType::TRANSLATE;
+            if (auto v = attr(atts, "x")) op.a = atof(v);
+            if (auto v = attr(atts, "y")) op.b = atof(v);
+            if (auto v = attr(atts, "z")) op.c = atof(v);
+            ps->groupStack.back()->transforms.push_back(op);
+        }
 
     } else if (strcmp(name, "rotate") == 0) {
         if (ps->groupStack.empty()) return;
         TransformOp op;
-        op.type = TransformType::ROTATE;
-        if (auto v = attr(atts, "angle")) op.a = atof(v);
-        if (auto v = attr(atts, "x"))     op.b = atof(v);
-        if (auto v = attr(atts, "y"))     op.c = atof(v);
-        if (auto v = attr(atts, "z"))     op.d = atof(v);
+
+        if (auto v = attr(atts, "time")) {
+            // Rotação contínua
+            op.type = TransformType::ANIM_ROTATE;
+            op.time = atof(v);
+            if (auto v2 = attr(atts, "x")) op.b = atof(v2);
+            if (auto v2 = attr(atts, "y")) op.c = atof(v2);
+            if (auto v2 = attr(atts, "z")) op.d = atof(v2);
+        } else {
+            // Rotação estática
+            op.type = TransformType::ROTATE;
+            if (auto v2 = attr(atts, "angle")) op.a = atof(v2);
+            if (auto v2 = attr(atts, "x"))     op.b = atof(v2);
+            if (auto v2 = attr(atts, "y"))     op.c = atof(v2);
+            if (auto v2 = attr(atts, "z"))     op.d = atof(v2);
+        }
         ps->groupStack.back()->transforms.push_back(op);
 
     } else if (strcmp(name, "scale") == 0) {
@@ -86,10 +112,18 @@ static void XMLCALL onStart(void* ud, const XML_Char* name, const XML_Char** att
         if (auto v = attr(atts, "z")) op.c = atof(v);
         ps->groupStack.back()->transforms.push_back(op);
 
-    // Modelo
+    // ── Ponto de controlo Catmull-Rom ──
+    } else if (strcmp(name, "point") == 0) {
+        if (!ps->animGroup) return;
+        Vec3 p{0,0,0};
+        if (auto v = attr(atts, "x")) p.x = atof(v);
+        if (auto v = attr(atts, "y")) p.y = atof(v);
+        if (auto v = attr(atts, "z")) p.z = atof(v);
+        ps->animGroup->transforms[ps->animIdx].points.push_back(p);
+
+    // ── Modelo ──
     } else if (strcmp(name, "model") == 0) {
         if (auto f = attr(atts, "file")) {
-            // Se ainda não há nenhum grupo na pilha, os modelos vão para root
             Group* g = ps->groupStack.empty()
                        ? &ps->scene->root
                        : ps->groupStack.back();
@@ -121,9 +155,12 @@ static void XMLCALL onStart(void* ud, const XML_Char* name, const XML_Char** att
 
 static void XMLCALL onEnd(void* ud, const XML_Char* name) {
     auto* ps = static_cast<ParseState*>(ud);
-    // ao fechar um <group>, retira da pilha
+
     if (strcmp(name, "group") == 0 && !ps->groupStack.empty())
         ps->groupStack.pop_back();
+
+    if (strcmp(name, "translate") == 0)
+        ps->animGroup = nullptr;   // fecha o bloco de pontos
 }
 
 bool parseXML(const std::string& path, Scene& scene) {
