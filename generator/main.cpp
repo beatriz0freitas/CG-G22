@@ -7,6 +7,7 @@
 #include "primitives/cone.h"
 #include "primitives/cylinder.h"
 #include "primitives/torus.h"
+#include "primitives/bezier.h"
 
 static void usage() {
     std::cout
@@ -16,7 +17,8 @@ static void usage() {
         << "  generator sphere   <radius> <slices> <stacks> <output.3d>\n"
         << "  generator cone     <radius> <height> <slices> <stacks> <output.3d>\n"
         << "  generator cylinder <radius> <height> <slices> <stacks> <output.3d>\n"
-        << "  generator torus    <outerRadius> <innerRadius> <sides> <rings> <output.3d>\n";
+        << "  generator torus    <outerRadius> <innerRadius> <sides> <rings> <output.3d>\n"
+        << "  generator bezier   <patch.patch> <tessellation> <output.3d>\n";
 }
 
 int main(int argc, char* argv[]) {
@@ -53,6 +55,10 @@ int main(int argc, char* argv[]) {
                                    std::stoi(args[3]), std::stoi(args[4]));
             return saveToFile(m, args[5]) ? 0 : 1;
 
+        } else if (cmd == "bezier" && argc == 5) {
+            auto m = generateBezier(args[1], std::stoi(args[2]));
+            return saveToFile(m, args[3]) ? 0 : 1;
+ 
         } else {
             std::cerr << "Comando ou numero de argumentos invalido.\n";
             usage(); return 1;

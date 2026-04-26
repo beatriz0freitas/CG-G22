@@ -12,6 +12,7 @@ add_executable(generator
     primitives/cone.cpp
     primitives/cylinder.cpp
     primitives/torus.cpp
+    primitives/bezier.cpp
 )
 
 target_include_directories(generator PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})

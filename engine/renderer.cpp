@@ -9,6 +9,7 @@
 // ── Estado global do renderer ──
 RenderMode g_renderMode = RenderMode::WIREFRAME;
 bool       g_showAxes   = true;
+float      g_time       = 0.0f;
 
 void toggleRenderMode() {
     switch (g_renderMode) {
@@ -17,6 +18,68 @@ void toggleRenderMode() {
         case RenderMode::SOLID_WIRE: g_renderMode = RenderMode::WIREFRAME;  break;
     }
 }
+
+// ── Catmull-Rom ──
+// gt = t global em unidades de segmento (0 a n, wraps)
+static void catmullRomPoint(const std::vector<Vec3>& pts, float gt,
+                             Vec3& pos, Vec3& deriv) {
+    int   n   = (int)pts.size();
+    int   seg = (int)gt % n;
+    float t   = gt - floorf(gt);
+    float t2  = t*t, t3 = t2*t;
+ 
+    const Vec3& p0 = pts[((seg - 1) + n) % n];
+    const Vec3& p1 = pts[seg];
+    const Vec3& p2 = pts[(seg + 1) % n];
+    const Vec3& p3 = pts[(seg + 2) % n];
+ 
+    // Posição  q(t) = 0.5*[(-t³+2t²-t)*p0 + (3t³-5t²+2)*p1 + (-3t³+4t²+t)*p2 + (t³-t²)*p3]
+    auto crP = [&](float a, float b, float c, float d) {
+        return 0.5f * ((-t3 + 2*t2 - t)*a  + (3*t3 - 5*t2 + 2)*b +
+                       (-3*t3 + 4*t2 + t)*c + (t3 - t2)*d);
+    };
+    // Derivada q'(t)
+    auto crD = [&](float a, float b, float c, float d) {
+        return 0.5f * ((-3*t2 + 4*t - 1)*a + (9*t2 - 10*t)*b +
+                       (-9*t2 + 8*t + 1)*c  + (3*t2 - 2*t)*d);
+    };
+ 
+    pos   = { crP(p0.x,p1.x,p2.x,p3.x), crP(p0.y,p1.y,p2.y,p3.y), crP(p0.z,p1.z,p2.z,p3.z) };
+    deriv = { crD(p0.x,p1.x,p2.x,p3.x), crD(p0.y,p1.y,p2.y,p3.y), crD(p0.z,p1.z,p2.z,p3.z) };
+}
+ 
+// Constrói uma matriz de rotação (coluna-major) que alinha o eixo Z local com T
+static void buildAlignMatrix(const Vec3& T_raw, float mat[16]) {
+    float len = sqrtf(T_raw.x*T_raw.x + T_raw.y*T_raw.y + T_raw.z*T_raw.z);
+    if (len < 1e-6f) {
+        memset(mat, 0, 16*sizeof(float));
+        mat[0] = mat[5] = mat[10] = mat[15] = 1.0f;
+        return;
+    }
+    Vec3 T = { T_raw.x/len, T_raw.y/len, T_raw.z/len };
+ 
+    // Vetor "cima" que não seja paralelo a T
+    Vec3 up = (fabsf(T.y) < 0.99f) ? Vec3{0,1,0} : Vec3{0,0,1};
+ 
+    // Direita = T × up
+    Vec3 R = { T.y*up.z - T.z*up.y,
+               T.z*up.x - T.x*up.z,
+               T.x*up.y - T.y*up.x };
+    len = sqrtf(R.x*R.x + R.y*R.y + R.z*R.z);
+    R = { R.x/len, R.y/len, R.z/len };
+ 
+    // Cima ortogonal = R × T
+    Vec3 U = { R.y*T.z - R.z*T.y,
+               R.z*T.x - R.x*T.z,
+               R.x*T.y - R.y*T.x };
+ 
+    // Matriz coluna-major: cols = R, U, T
+    mat[0]=R.x; mat[4]=U.x; mat[8] =T.x; mat[12]=0;
+    mat[1]=R.y; mat[5]=U.y; mat[9] =T.y; mat[13]=0;
+    mat[2]=R.z; mat[6]=U.z; mat[10]=T.z; mat[14]=0;
+    mat[3]=0;   mat[7]=0;   mat[11]=0;   mat[15]=1;
+}
+ 
 
 // Desenha eixos XYZ
 static void drawAxes() {
@@ -56,8 +119,29 @@ static void renderGroup(const Group& group) {
             case TransformType::SCALE:
                 glScalef(op.a, op.b, op.c);
                 break;
+            case TransformType::ANIM_TRANSLATE: {
+                if (op.points.size() < 4) break;
+                // t normalizado [0,1) → global em unidades de segmento
+                float t  = fmodf(g_time / op.time, 1.0f);
+                float gt = t * op.points.size();
+                Vec3 pos, deriv;
+                catmullRomPoint(op.points, gt, pos, deriv);
+                glTranslatef(pos.x, pos.y, pos.z);
+                if (op.align) {
+                    float mat[16];
+                    buildAlignMatrix(deriv, mat);
+                    glMultMatrixf(mat);
+                }
+                break;
+            }
+            case TransformType::ANIM_ROTATE: {
+                float angle = fmodf(g_time / op.time * 360.0f, 360.0f);
+                glRotatef(angle, op.b, op.c, op.d);
+                break;
+            }
         }
     }
+
 
     // Desenha a geometria deste grupo
     switch (g_renderMode) {
