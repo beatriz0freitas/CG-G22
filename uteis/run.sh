@@ -111,11 +111,6 @@ if [[ -d "test_files/test_files_phase_3" ]]; then
     gen bezier uteis/teapot.patch 10 test_files/test_files_phase_3/bezier_10.3d
 fi
 
-if [[ -d "test_files/test_files_phase_4" ]]; then
-    gen bezier uteis/teapot.patch 10 test_files/test_files_phase_4/bezier_10.3d
-fi
-
-
 if [[ "${1:-}" == "--scenes" ]]; then
     echo ""
     echo "=== Scenes ==="

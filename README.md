@@ -53,6 +53,7 @@ Gera um ficheiro `.3d` para cada primitiva. Corre a partir de `build/`:
 ./generator/generator cone     <radius> <height> <slices> <stacks>   <out.3d>
 ./generator/generator cylinder <radius> <height> <slices> <stacks>   <out.3d>
 ./generator/generator torus    <outerRadius> <innerRadius> <sides> <rings>  <out.3d>
+./generator/generator bezier   <patch.patch> <tessellation>          <out.3d>
 ```
 
 Exemplos:
@@ -99,10 +100,11 @@ Recebe um ficheiro XML de configuração da scene. Os caminhos dos modelos no XM
 Automatiza compilação, geração de modelos e execução de testes.
 
 ```bash
-./run.sh                  # compila + gera + testes fase 1 e fase 2
+./run.sh                  # compila + gera + testes fase 1, fase 2 e fase 3
 ./run.sh --build-only     # só compila
 ./run.sh --test1 <n>      # corre apenas o teste N da fase 1 (1-5)
 ./run.sh --test2 <n>      # corre apenas o teste N da fase 2 (1-4)
+./run.sh --test3 <n>      # corre apenas o teste N da fase 3 (1-2)
 ./run.sh --scenes         # corre todas as scenes da pasta scenes/
 ./run.sh --scene <nome>   # corre uma scene específica (ex: cone)
 ./run.sh --clean          # apaga build/ e todos os .3d gerados
