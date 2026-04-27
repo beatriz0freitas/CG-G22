@@ -2,10 +2,11 @@
 # Compila o projeto, gera os modelos e corre os testes.
 #
 # Uso:
-#   ./run.sh                  - compila + gera + testes fase 1 e fase 2
+#   ./run.sh                  - compila + gera + testes fase 1, fase 2 e fase 3
 #   ./run.sh --scenes         - corre todas as scenes da pasta scenes/
 #   ./run.sh --test1 <n>      - corre apenas o teste N da fase 1
 #   ./run.sh --test2 <n>      - corre apenas o teste N da fase 2
+#   ./run.sh --test3 <n>      - corre apenas o teste N da fase 3
 #   ./run.sh --scene <nome>   - corre uma scene especifica (ex: cone)
 #   ./run.sh --build-only     - so compila, nao gera nem corre nada
 #   ./run.sh --clean          - apaga build/ e todos os .3d gerados
@@ -33,7 +34,7 @@ gen() {
 if [[ "${1:-}" == "--clean" ]]; then
     echo "A limpar..."
     rm -rf build/ models/
-    find test_files/test_files_phase_1 test_files/test_files_phase_2 -name "*.3d" -delete 2>/dev/null || true
+    find test_files/test_files_phase_1 test_files/test_files_phase_2 test_files/test_files_phase_3 test_files/test_files_phase_4 -name "*.3d" -delete 2>/dev/null || true
     echo "Pronto."
     exit 0
 fi
@@ -47,6 +48,12 @@ fi
 if [[ "${1:-}" == "--test2" ]]; then
     [[ -n "$2" ]] || { echo "Indica o numero do teste (1-4)."; exit 1; }
     run_engine "test_files/test_files_phase_2/test_2_${2}.xml"
+    exit 0
+fi
+
+if [[ "${1:-}" == "--test3" ]]; then
+    [[ -n "$2" ]] || { echo "Indica o numero do teste (1-2)."; exit 1; }
+    run_engine "test_files/test_files_phase_3/test_3_${2}.xml"
     exit 0
 fi
 
@@ -100,6 +107,14 @@ if [[ -d "test_files/test_files_phase_2" ]]; then
     gen cone   1 2 4 3   test_files/test_files_phase_2/cone_1_2_4_3.3d
 fi
 
+if [[ -d "test_files/test_files_phase_3" ]]; then
+    gen bezier uteis/teapot.patch 10 test_files/test_files_phase_3/bezier_10.3d
+fi
+
+if [[ -d "test_files/test_files_phase_4" ]]; then
+    gen bezier uteis/teapot.patch 10 test_files/test_files_phase_4/bezier_10.3d
+fi
+
 
 if [[ "${1:-}" == "--scenes" ]]; then
     echo ""
@@ -112,11 +127,15 @@ if [[ "${1:-}" == "--scenes" ]]; then
     exit 0
 fi
 
-# modo padrao: testes fase 1 + fase 2
+# modo padrao: testes fase 1 + fase 2 + fase 3
 for n in 1 2 3 4 5; do
     run_engine "test_files/test_files_phase_1/test_1_${n}.xml" && echo "  Teste 1.$n OK" || echo "  Teste 1.$n falhou"
 done
 
 for n in 1 2 3 4; do
     run_engine "test_files/test_files_phase_2/test_2_${n}.xml" && echo "  Teste 2.$n OK" || echo "  Teste 2.$n falhou"
+done
+
+for n in 1 2; do
+    run_engine "test_files/test_files_phase_3/test_3_${n}.xml" && echo "  Teste 3.$n OK" || echo "  Teste 3.$n falhou"
 done
