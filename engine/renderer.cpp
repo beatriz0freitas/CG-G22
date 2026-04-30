@@ -76,17 +76,18 @@ static void buildAlignMatrix(const Vec3& T_raw, float mat[16]) {
         return;
     }
 
-    Vec3 up = (fabsf(X.y) < 0.99f) ? Vec3{0,1,0} : Vec3{0,0,1};
+    static Vec3 up = {0, 1, 0};
     Vec3 Z = cross(X, up);
     if (!normalize(Z)) {
-        up = {1,0,0};
+        up = (fabsf(X.y) < 0.99f) ? Vec3{0,1,0} : Vec3{0,0,1};
         Z = cross(X, up);
         normalize(Z);
     }
     Vec3 Y = cross(Z, X);
     normalize(Y);
+    up = Y;
 
-    // Matriz coluna-major: cols = X(tangente), Y(cima corrigido), Z(lateral).
+    // Matriz coluna-major: cols = X(tangente), Y(cima), Z(lateral).
     mat[0]=X.x; mat[4]=Y.x; mat[8] =Z.x; mat[12]=0;
     mat[1]=X.y; mat[5]=Y.y; mat[9] =Z.y; mat[13]=0;
     mat[2]=X.z; mat[6]=Y.z; mat[10]=Z.z; mat[14]=0;
