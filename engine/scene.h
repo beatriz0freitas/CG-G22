@@ -12,14 +12,27 @@ struct Vertex {
     float x,  y,  z;   // posição
     float nx, ny, nz;  // normal       (lido do .3d mas não usado até Fase 4)
     float u,  v;       // textura UV   (lido do .3d mas não usado até Fase 4)
+
+    bool operator<(const Vertex& other) const {
+    if (x != other.x) return x < other.x;
+    if (y != other.y) return y < other.y;
+    if (z != other.z) return z < other.z;
+    if (nx != other.nx) return nx < other.nx;
+    if (ny != other.ny) return ny < other.ny;
+    if (nz != other.nz) return nz < other.nz;
+    if (u != other.u) return u < other.u;
+    return v < other.v;
+}
 };
 
 // Mesh - verts carregados do .3d; após buildVBOs() os dados residem na GPU.
 struct Mesh {
     std::string         filename;
     std::vector<Vertex> verts;
-    unsigned int        vboId    = 0;
-    int                 vboCount = 0;
+    unsigned int        vboId      = 0;   // Buffer com vértices únicos
+    int                 vboCount   = 0;   // Número de vértices únicos
+    unsigned int        indexVboId = 0;   // Buffer com índices (elemento array buffer)
+    int                 indexCount = 0;   // Número de índices (3x número de triângulos)
 };
 
 enum class TransformType {

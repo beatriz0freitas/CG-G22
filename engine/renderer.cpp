@@ -2,6 +2,7 @@
 
 #include <cmath>
 #include <cstring>
+#include <map>
 
 #define GL_GLEXT_PROTOTYPES
 #ifdef __APPLE__
@@ -103,31 +104,68 @@ static void drawAxes() {
 void buildVBOs(Group& g) {
     for (auto& mesh : g.meshes) {
         if (mesh.verts.empty()) continue;
+
+        // ── Deduplicação de vértices e geração de índices ──
+        std::vector<Vertex> deduplicatedVerts;
+        std::vector<unsigned int> indices;
+        std::map<Vertex, unsigned int> vertexToIndex;
+
+        for (const auto& vert : mesh.verts) {
+            auto it = vertexToIndex.find(vert);
+            if (it != vertexToIndex.end()) {
+                // Vértice já existe, reutiliza o índice
+                indices.push_back(it->second);
+            } else {
+                // Vértice novo, adiciona à lista e guarda o índice
+                unsigned int index = (unsigned int)deduplicatedVerts.size();
+                deduplicatedVerts.push_back(vert);
+                indices.push_back(index);
+                vertexToIndex[vert] = index;
+            }
+        }
+
+        // ── VBO para vértices únicos ──
         glGenBuffers(1, &mesh.vboId);
         glBindBuffer(GL_ARRAY_BUFFER, mesh.vboId);
         glBufferData(GL_ARRAY_BUFFER,
-                     (GLsizeiptr)(mesh.verts.size() * sizeof(Vertex)),
-                     mesh.verts.data(),
+                     (GLsizeiptr)(deduplicatedVerts.size() * sizeof(Vertex)),
+                     deduplicatedVerts.data(),
                      GL_STATIC_DRAW);
-        mesh.vboCount = (int)mesh.verts.size();
+        mesh.vboCount = (int)deduplicatedVerts.size();
+
+        // ── VBO para índices (element array buffer) ──
+        glGenBuffers(1, &mesh.indexVboId);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh.indexVboId);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER,
+                     (GLsizeiptr)(indices.size() * sizeof(unsigned int)),
+                     indices.data(),
+                     GL_STATIC_DRAW);
+        mesh.indexCount = (int)indices.size();
+
         glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
     }
     for (auto& child : g.children)
         buildVBOs(child);
 }
 
-// Desenha todos os triângulos de um Group via VBOs
+// Desenha todos os triângulos de um Group via VBOs com índices
 static void renderGroupGeometry(const Group& group) {
     glEnableClientState(GL_VERTEX_ARRAY);
     for (const auto& mesh : group.meshes) {
-        if (mesh.vboId == 0) continue;
+        if (mesh.vboId == 0 || mesh.indexVboId == 0) continue;
+        
+        // Ativa o VBO de vértices
         glBindBuffer(GL_ARRAY_BUFFER, mesh.vboId);
-        // posição nos primeiros 3 floats de cada Vertex (stride = sizeof(Vertex))
         glVertexPointer(3, GL_FLOAT, sizeof(Vertex), (void*)0);
-        glDrawArrays(GL_TRIANGLES, 0, mesh.vboCount);
+
+        // Ativa o VBO de índices e desenha com glDrawElements
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh.indexVboId);
+        glDrawElements(GL_TRIANGLES, mesh.indexCount, GL_UNSIGNED_INT, 0);
     }
     glDisableClientState(GL_VERTEX_ARRAY);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
 
 static void renderGroup(const Group& group) {
