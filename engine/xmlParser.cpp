@@ -1,5 +1,6 @@
 #include "xmlParser.h"
 #include <expat.h>
+#include <cctype>
 #include <cstring>
 #include <cstdio>
 #include <cstdlib>
@@ -19,6 +20,17 @@ static const char* attr(const XML_Char** atts, const char* key) {
     for (int i = 0; atts[i]; i += 2)
         if (strcmp(atts[i], key) == 0) return atts[i + 1];
     return nullptr;
+}
+
+static bool attrBool(const XML_Char** atts, const char* key) {
+    const char* value = attr(atts, key);
+    if (!value) return false;
+
+    std::string s(value);
+    for (char& c : s)
+        c = (char)std::tolower((unsigned char)c);
+
+    return s == "true";
 }
 
 static void XMLCALL onStart(void* ud, const XML_Char* name, const XML_Char** atts) {
@@ -67,7 +79,7 @@ static void XMLCALL onStart(void* ud, const XML_Char* name, const XML_Char** att
             // Animado: Catmull-Rom
             op.type  = TransformType::ANIM_TRANSLATE;
             op.time  = atof(v);
-            op.align = attr(atts, "align") && strcmp(attr(atts, "align"), "true") == 0;
+            op.align = attrBool(atts, "align");
             ps->groupStack.back()->transforms.push_back(op);
             // Guarda referência para acumular <point>
             ps->animGroup = ps->groupStack.back();
