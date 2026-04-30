@@ -20,12 +20,22 @@ struct Mesh {
     std::vector<Vertex> verts;
 };
 
-enum class TransformType { TRANSLATE, ROTATE, SCALE };
+enum class TransformType {
+    TRANSLATE,        // estático: a=x, b=y, c=z
+    ROTATE,           // estático: a=angle, b=x, c=y, d=z
+    SCALE,            // estático: a=x, b=y, c=z
+    ANIM_TRANSLATE,   // Catmull-Rom: time + align + points
+    ANIM_ROTATE,      // rotação contínua: time + eixo (b,c,d)
+};
 
 struct TransformOp {
-    TransformType type;
+    TransformType     type;
     float a = 0, b = 0, c = 0, d = 0;
+    float time  = 0;          // duração de um ciclo completo (segundos)
+    bool  align = false;      // orientar o objeto ao longo da curva
+    std::vector<Vec3> points; // pontos de controlo Catmull-Rom
 };
+
 
 // Group - lista plana de meshes, sem transform, sem filhos.
 struct Group {
