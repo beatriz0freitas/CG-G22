@@ -14,10 +14,12 @@ struct Vertex {
     float u,  v;       // textura UV   (lido do .3d mas não usado até Fase 4)
 };
 
-// Mesh - verts carregados do .3d, apenas posição usada no rendering.
+// Mesh - verts carregados do .3d; após buildVBOs() os dados residem na GPU.
 struct Mesh {
-    std::string        filename;
+    std::string         filename;
     std::vector<Vertex> verts;
+    unsigned int        vboId    = 0;
+    int                 vboCount = 0;
 };
 
 enum class TransformType {

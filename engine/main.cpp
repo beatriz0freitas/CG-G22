@@ -305,6 +305,9 @@ int main(int argc, char *argv[]) {
     glEnable(GL_CULL_FACE);
     glCullFace(GL_BACK);
     glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+
+    // Fase 3: upload de todos os modelos para a GPU via VBOs
+    buildVBOs(g_scene.root);
  
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
