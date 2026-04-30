@@ -92,6 +92,7 @@ gen sphere   1   10  10    models/sphere.3d
 gen cone     1   2   4  3  models/cone.3d
 gen cylinder 1   2   16  4 models/cylinder.3d
 gen torus    1   0.3 16 32 models/torus.3d
+gen bezier   uteis/teapot.patch 10 models/bezier_10.3d
 
 # os modelos de teste ficam ao lado dos XMLs porque o engine resolve caminhos relativos ao ficheiro XML
 if [[ -d "test_files/test_files_phase_1" ]]; then

@@ -1,9 +1,14 @@
 #include "renderer.h"
 
+#include <cmath>
+#include <cstring>
+
+#define GL_GLEXT_PROTOTYPES
 #ifdef __APPLE__
 #  include <GLUT/glut.h>
 #else
 #  include <GL/glut.h>
+#  include <GL/glext.h>
 #endif
 
 // ── Estado global do renderer ──
@@ -94,14 +99,35 @@ static void drawAxes() {
     glDisable(GL_LINE_STIPPLE);
 }
 
-// Desenha todos os triângulos de um Group
-static void renderGroupGeometry(const Group& group) {
-    for (const auto& mesh : group.meshes) {
-        glBegin(GL_TRIANGLES);
-        for (const auto& v : mesh.verts)
-            glVertex3f(v.x, v.y, v.z);
-        glEnd();
+// Faz upload da geometria de todos os Mesh para VBOs na GPU
+void buildVBOs(Group& g) {
+    for (auto& mesh : g.meshes) {
+        if (mesh.verts.empty()) continue;
+        glGenBuffers(1, &mesh.vboId);
+        glBindBuffer(GL_ARRAY_BUFFER, mesh.vboId);
+        glBufferData(GL_ARRAY_BUFFER,
+                     (GLsizeiptr)(mesh.verts.size() * sizeof(Vertex)),
+                     mesh.verts.data(),
+                     GL_STATIC_DRAW);
+        mesh.vboCount = (int)mesh.verts.size();
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
     }
+    for (auto& child : g.children)
+        buildVBOs(child);
+}
+
+// Desenha todos os triângulos de um Group via VBOs
+static void renderGroupGeometry(const Group& group) {
+    glEnableClientState(GL_VERTEX_ARRAY);
+    for (const auto& mesh : group.meshes) {
+        if (mesh.vboId == 0) continue;
+        glBindBuffer(GL_ARRAY_BUFFER, mesh.vboId);
+        // posição nos primeiros 3 floats de cada Vertex (stride = sizeof(Vertex))
+        glVertexPointer(3, GL_FLOAT, sizeof(Vertex), (void*)0);
+        glDrawArrays(GL_TRIANGLES, 0, mesh.vboCount);
+    }
+    glDisableClientState(GL_VERTEX_ARRAY);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
 static void renderGroup(const Group& group) {

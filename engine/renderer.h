@@ -18,5 +18,8 @@ extern float      g_time;   // segundos desde o início, actualizado pelo main
 // Cicla para o próximo modo de renderização
 void toggleRenderMode();
 
+// Faz upload de todos os VBOs da scene para a GPU (chamar depois de glutCreateWindow)
+void buildVBOs(Group& g);
+
 // Desenha um frame completo da cena
 void renderScene(const Scene& scene);
