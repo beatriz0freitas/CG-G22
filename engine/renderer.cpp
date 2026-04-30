@@ -147,7 +147,21 @@ static void renderGroup(const Group& group) {
                 break;
             case TransformType::ANIM_TRANSLATE: {
                 if (op.points.size() < 4) break;
-                // t normalizado [0,1) → global em unidades de segmento
+
+                // Desenha a curva Catmull-Rom como linha fechada
+                glColor3f(1.0f, 1.0f, 0.0f);
+                glBegin(GL_LINE_LOOP);
+                const int CURVE_SAMPLES = 100;
+                for (int i = 0; i < CURVE_SAMPLES; ++i) {
+                    float ct  = (float)i / CURVE_SAMPLES;
+                    float cgt = ct * op.points.size();
+                    Vec3 cpos, cder;
+                    catmullRomPoint(op.points, cgt, cpos, cder);
+                    glVertex3f(cpos.x, cpos.y, cpos.z);
+                }
+                glEnd();
+
+                // Aplica a translação animada
                 float t  = fmodf(g_time / op.time, 1.0f);
                 float gt = t * op.points.size();
                 Vec3 pos, deriv;
