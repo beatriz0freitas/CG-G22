@@ -47,10 +47,11 @@ static void evalPatch(const V3 cp[4][4], float u, float v,
         }
     }
 
-    // normal = du × dv
-    nor.x = du.y*dv.z - du.z*dv.y;
-    nor.y = du.z*dv.x - du.x*dv.z;
-    nor.z = du.x*dv.y - du.y*dv.x;
+    // A ordem dos triângulos emitidos abaixo segue primeiro v e depois u,
+    // por isso a normal deve usar dv x du para coincidir com o winding.
+    nor.x = dv.y*du.z - dv.z*du.y;
+    nor.y = dv.z*du.x - dv.x*du.z;
+    nor.z = dv.x*du.y - dv.y*du.x;
     float len = sqrtf(nor.x*nor.x + nor.y*nor.y + nor.z*nor.z);
     if (len > 1e-6f) { nor.x /= len; nor.y /= len; nor.z /= len; }
 }
