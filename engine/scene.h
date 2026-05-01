@@ -7,11 +7,11 @@
 // Vec3 — usado para posições e direções (câmara, transforms, etc.)
 struct Vec3 { float x, y, z; };
 
-// Vertex — contém toda a informação geométrica por vértice. - Os campos existem desde já para o formato .3d ser consistente nas 4 fases.
+// Vertex — contém toda a informação geométrica por vértice.
 struct Vertex {
     float x,  y,  z;   // posição
-    float nx, ny, nz;  // normal       (lido do .3d mas não usado até Fase 4)
-    float u,  v;       // textura UV   (lido do .3d mas não usado até Fase 4)
+    float nx, ny, nz;  // normal
+    float u,  v;       // textura UV
 
     bool operator<(const Vertex& other) const {
     if (x != other.x) return x < other.x;
@@ -25,10 +25,21 @@ struct Vertex {
 }
 };
 
+struct Material {
+    float diffuse[4]  = {200.0f / 255.0f, 200.0f / 255.0f, 200.0f / 255.0f, 1.0f};
+    float ambient[4]  = { 50.0f / 255.0f,  50.0f / 255.0f,  50.0f / 255.0f, 1.0f};
+    float specular[4] = {0.0f, 0.0f, 0.0f, 1.0f};
+    float emissive[4] = {0.0f, 0.0f, 0.0f, 1.0f};
+    float shininess   = 0.0f;
+};
+
 // Mesh - verts carregados do .3d; após buildVBOs() os dados residem na GPU.
 struct Mesh {
     std::string         filename;
     std::vector<Vertex> verts;
+    Material            material;
+    std::string         textureFile;
+    unsigned int        textureId  = 0;
     unsigned int        vboId      = 0;   // Buffer com vértices únicos
     int                 vboCount   = 0;   // Número de vértices únicos
     unsigned int        indexVboId = 0;   // Buffer com índices (elemento array buffer)
@@ -60,6 +71,19 @@ struct Group {
     std::vector<Group> children;
 };
 
+enum class LightType {
+    POINT,
+    DIRECTIONAL,
+    SPOT
+};
+
+struct Light {
+    LightType type = LightType::POINT;
+    Vec3 position  = {0, 0, 0};
+    Vec3 direction = {0, -1, 0};
+    float cutoff   = 180.0f;
+};
+
 struct Camera {
     Vec3  position = {3, 2, 1};
     Vec3  lookAt   = {0, 0, 0};
@@ -73,5 +97,6 @@ struct Scene {
     int    winW = 512;
     int    winH = 512;
     Camera camera;
+    std::vector<Light> lights;
     Group  root;
 };
