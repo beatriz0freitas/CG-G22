@@ -48,6 +48,7 @@ struct TransformOp {
     float a = 0, b = 0, c = 0, d = 0;
     float time  = 0;          // duração de um ciclo completo (segundos)
     bool  align = false;      // orientar o objeto ao longo da curva
+    mutable Vec3 Yant = {0, 1, 0};   // Y_{i-1} do referencial de alinhamento
     std::vector<Vec3> points; // pontos de controlo Catmull-Rom
 };
 

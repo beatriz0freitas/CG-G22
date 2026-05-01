@@ -68,7 +68,7 @@ static bool normalize(Vec3& v) {
 }
 
 // Constrói uma matriz de rotação (coluna-major) que alinha o eixo X local com a tangente da curva.
-static void buildAlignMatrix(const Vec3& T_raw, float mat[16]) {
+static void buildAlignMatrix(const Vec3& T_raw, Vec3& up, float mat[16]) {
     Vec3 X = T_raw;
     if (!normalize(X)) {
         memset(mat, 0, 16*sizeof(float));
@@ -76,12 +76,15 @@ static void buildAlignMatrix(const Vec3& T_raw, float mat[16]) {
         return;
     }
 
-    static Vec3 up = {0, 1, 0};
     Vec3 Z = cross(X, up);
     if (!normalize(Z)) {
-        up = (fabsf(X.y) < 0.99f) ? Vec3{0,1,0} : Vec3{0,0,1};
-        Z = cross(X, up);
-        normalize(Z);
+        Vec3 fallback = (fabsf(X.y) < 0.99f) ? Vec3{0,1,0} : Vec3{0,0,1};
+        Z = cross(X, fallback);
+        if (!normalize(Z)) {
+            memset(mat, 0, 16*sizeof(float));
+            mat[0] = mat[5] = mat[10] = mat[15] = 1.0f;
+            return;
+        }
     }
     Vec3 Y = cross(Z, X);
     normalize(Y);
@@ -180,7 +183,7 @@ static void renderGroup(const Group& group) {
     glPushMatrix();   //guarda a matriz corrente na pilha
 
     // Aplica as transforms deste grupo, pela ordem em que estão no XML
-    for (const auto& op : group.transforms) {
+    for (auto& op : group.transforms) {
         switch (op.type) {
             case TransformType::TRANSLATE:
                 glTranslatef(op.a, op.b, op.c);
@@ -215,7 +218,7 @@ static void renderGroup(const Group& group) {
                 glTranslatef(pos.x, pos.y, pos.z);
                 if (op.align) {
                     float mat[16];
-                    buildAlignMatrix(deriv, mat);
+                    buildAlignMatrix(deriv, op.Yant, mat);
                     glMultMatrixf(mat);
                 }
                 break;
