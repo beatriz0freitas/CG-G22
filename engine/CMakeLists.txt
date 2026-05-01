@@ -14,6 +14,7 @@ if(WIN32)
     )
 endif()
 find_package(GLUT REQUIRED)
+find_package(JPEG REQUIRED)
 
 # Expat: tentar find_package primeiro (vcpkg/conan), fallback para find_library
 find_package(EXPAT QUIET)
@@ -28,18 +29,21 @@ add_executable(engine
     main.cpp
     xmlParser.cpp
     renderer.cpp
+    imageLoader.cpp
 )
 
 target_include_directories(engine PRIVATE
     ${OPENGL_INCLUDE_DIR}
     ${GLUT_INCLUDE_DIR}
     ${EXPAT_INCLUDE_DIRS}
+    ${JPEG_INCLUDE_DIRS}
 )
 
 target_link_libraries(engine
     ${OPENGL_LIBRARIES}
     ${GLUT_LIBRARIES}
     ${EXPAT_LIBRARIES}
+    ${JPEG_LIBRARIES}
 )
 
 # libm só existe em Unix/Linux
