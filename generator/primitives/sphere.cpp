@@ -18,20 +18,25 @@ Model generateSphere(float radius, int slices, int stacks)
             float theta1 = theta0 + dTheta;
 
             // Para uma esfera centrada na origem, a normal em qualquer ponto é simplesmente a posição normalizada (dividida pelo raio).
-            auto makeVertex = [&](float phi, float theta) -> Vertex
+            auto makeVertex = [&](float phi, float theta, float u, float v) -> Vertex
             {
                 float nx = cosf(phi) * sinf(theta);
                 float ny = sinf(phi);
                 float nz = cosf(phi) * cosf(theta);
                 return {radius * nx, radius * ny, radius * nz,
                         nx, ny, nz,
-                        0, 0};
+                        u, v};
             };
 
-            Vertex v00 = makeVertex(phi0, theta0);
-            Vertex v01 = makeVertex(phi0, theta1);
-            Vertex v10 = makeVertex(phi1, theta0);
-            Vertex v11 = makeVertex(phi1, theta1);
+            float u0 = (float)j / slices;
+            float u1 = (float)(j + 1) / slices;
+            float v0 = (float)i / stacks;
+            float v1 = (float)(i + 1) / stacks;
+
+            Vertex v00 = makeVertex(phi0, theta0, u0, v0);
+            Vertex v01 = makeVertex(phi0, theta1, u1, v0);
+            Vertex v10 = makeVertex(phi1, theta0, u0, v1);
+            Vertex v11 = makeVertex(phi1, theta1, u1, v1);
 
             m.push_back(v00);
             m.push_back(v01);

@@ -5,7 +5,7 @@
 
 // Modos de renderização togglávéis com a tecla 'M'
 enum class RenderMode {
-    WIREFRAME,      // GL_LINE — modo atual 
+    WIREFRAME,      // GL_LINE
     SOLID,          // GL_FILL sem eixos
     SOLID_WIRE,     // GL_FILL + contornos (dois passes)
 };

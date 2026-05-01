@@ -8,12 +8,12 @@ Motor 3D desenvolvido no âmbito da UC de Computação Gráfica. Lê cenas descr
 
 **Linux:**
 ```bash
-sudo apt install cmake freeglut3-dev libexpat1-dev
+sudo apt install cmake freeglut3-dev libexpat1-dev libjpeg-dev
 ```
 
 **macOS:**
 ```bash
-brew install cmake expat
+brew install cmake expat jpeg
 # GLUT já está incluído no macOS via Xcode Command Line Tools
 xcode-select --install
 ```
@@ -105,6 +105,7 @@ Automatiza compilação, geração de modelos e execução de testes.
 ./run.sh --test1 <n>      # corre apenas o teste N da fase 1 (1-5)
 ./run.sh --test2 <n>      # corre apenas o teste N da fase 2 (1-4)
 ./run.sh --test3 <n>      # corre apenas o teste N da fase 3 (1-2)
+./run.sh --test4 <n>      # corre apenas o teste N da fase 4 (1-6)
 ./run.sh --scenes         # corre todas as scenes da pasta scenes/
 ./run.sh --scene <nome>   # corre uma scene específica (ex: cone)
 ./run.sh --clean          # apaga build/ e todos os .3d gerados

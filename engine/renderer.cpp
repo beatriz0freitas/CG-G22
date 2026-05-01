@@ -1,6 +1,9 @@
 #include "renderer.h"
+#include "imageLoader.h"
 
+#include <cstddef>
 #include <cmath>
+#include <cstdio>
 #include <cstring>
 #include <map>
 
@@ -13,7 +16,7 @@
 #endif
 
 // ── Estado global do renderer ──
-RenderMode g_renderMode = RenderMode::WIREFRAME;
+RenderMode g_renderMode = RenderMode::SOLID;
 bool       g_showAxes   = true;
 float      g_time       = 0.0f;
 
@@ -67,6 +70,95 @@ static bool normalize(Vec3& v) {
     return true;
 }
 
+static void applyMaterial(const Material& mat) {
+    glMaterialfv(GL_FRONT, GL_DIFFUSE,  mat.diffuse);
+    glMaterialfv(GL_FRONT, GL_AMBIENT,  mat.ambient);
+    glMaterialfv(GL_FRONT, GL_SPECULAR, mat.specular);
+    glMaterialfv(GL_FRONT, GL_EMISSION, mat.emissive);
+    glMaterialf(GL_FRONT, GL_SHININESS, mat.shininess);
+}
+
+static unsigned int loadTexture(const std::string& filename) {
+    static std::map<std::string, unsigned int> cache;
+
+    auto it = cache.find(filename);
+    if (it != cache.end())
+        return it->second;
+
+    Image img;
+    if (!loadJpegImage(filename, img) || img.pixels.empty()) {
+        fprintf(stderr, "Aviso: nao foi possivel carregar textura '%s'\n",
+                filename.c_str());
+        cache[filename] = 0;
+        return 0;
+    }
+
+    unsigned int texId = 0;
+    glGenTextures(1, &texId);
+    glBindTexture(GL_TEXTURE_2D, texId);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB,
+                 img.width, img.height, 0,
+                 GL_RGB, GL_UNSIGNED_BYTE, img.pixels.data());
+
+    glBindTexture(GL_TEXTURE_2D, 0);
+    cache[filename] = texId;
+    printf("  Textura: '%s' (%dx%d)\n", filename.c_str(), img.width, img.height);
+    return texId;
+}
+
+static void setupLights(const Scene& scene) {
+    if (scene.lights.empty()) {
+        glDisable(GL_LIGHTING);
+        for (int i = 0; i < 8; ++i)
+            glDisable(GL_LIGHT0 + i);
+        return;
+    }
+
+    glEnable(GL_LIGHTING);
+
+    const GLfloat white[4] = {1.0f, 1.0f, 1.0f, 1.0f};
+    const GLfloat black[4] = {0.0f, 0.0f, 0.0f, 1.0f};
+
+    for (int i = 0; i < 8; ++i)
+        glDisable(GL_LIGHT0 + i);
+
+    for (size_t i = 0; i < scene.lights.size() && i < 8; ++i) {
+        GLenum id = GL_LIGHT0 + (GLenum)i;
+        const Light& light = scene.lights[i];
+
+        glEnable(id);
+        glLightfv(id, GL_DIFFUSE, white);
+        glLightfv(id, GL_SPECULAR, white);
+        glLightfv(id, GL_AMBIENT, black);
+
+        if (light.type == LightType::DIRECTIONAL) {
+            GLfloat pos[4] = {light.direction.x, light.direction.y,
+                              light.direction.z, 0.0f};
+            glLightfv(id, GL_POSITION, pos);
+            glLightf(id, GL_SPOT_CUTOFF, 180.0f);
+        } else {
+            GLfloat pos[4] = {light.position.x, light.position.y,
+                              light.position.z, 1.0f};
+            glLightfv(id, GL_POSITION, pos);
+
+            if (light.type == LightType::SPOT) {
+                GLfloat dir[3] = {light.direction.x, light.direction.y,
+                                  light.direction.z};
+                glLightfv(id, GL_SPOT_DIRECTION, dir);
+                glLightf(id, GL_SPOT_CUTOFF, light.cutoff);
+            } else {
+                glLightf(id, GL_SPOT_CUTOFF, 180.0f);
+            }
+        }
+    }
+}
+
 // Constrói uma matriz de rotação (coluna-major) que alinha o eixo X local com a tangente da curva.
 static void buildAlignMatrix(const Vec3& T_raw, Vec3& up, float mat[16]) {
     Vec3 X = T_raw;
@@ -100,6 +192,11 @@ static void buildAlignMatrix(const Vec3& T_raw, Vec3& up, float mat[16]) {
 
 // Desenha eixos XYZ
 static void drawAxes() {
+    GLboolean lightingWas = glIsEnabled(GL_LIGHTING);
+    GLboolean textureWas = glIsEnabled(GL_TEXTURE_2D);
+    if (lightingWas) glDisable(GL_LIGHTING);
+    if (textureWas) glDisable(GL_TEXTURE_2D);
+
     glLineWidth(1.0f);
 
     glBegin(GL_LINES);
@@ -109,12 +206,18 @@ static void drawAxes() {
     glEnd();
 
     glDisable(GL_LINE_STIPPLE);
+
+    if (textureWas) glEnable(GL_TEXTURE_2D);
+    if (lightingWas) glEnable(GL_LIGHTING);
 }
 
 // Faz upload da geometria de todos os Mesh para VBOs na GPU
 void buildVBOs(Group& g) {
     for (auto& mesh : g.meshes) {
         if (mesh.verts.empty()) continue;
+
+        if (!mesh.textureFile.empty())
+            mesh.textureId = loadTexture(mesh.textureFile);
 
         // ── Deduplicação de vértices e geração de índices ──
         std::vector<Vertex> deduplicatedVerts;
@@ -161,22 +264,62 @@ void buildVBOs(Group& g) {
 }
 
 // Desenha todos os triângulos de um Group via VBOs com índices
-static void renderGroupGeometry(const Group& group) {
+static void renderGroupGeometry(const Group& group, bool useAppearance) {
+    GLboolean lightingWas = glIsEnabled(GL_LIGHTING);
+    GLboolean textureWas = glIsEnabled(GL_TEXTURE_2D);
+
+    if (!useAppearance) {
+        if (lightingWas) glDisable(GL_LIGHTING);
+        if (textureWas) glDisable(GL_TEXTURE_2D);
+    }
+
     glEnableClientState(GL_VERTEX_ARRAY);
+    if (useAppearance)
+        glEnableClientState(GL_NORMAL_ARRAY);
+
     for (const auto& mesh : group.meshes) {
         if (mesh.vboId == 0 || mesh.indexVboId == 0) continue;
         
         // Ativa o VBO de vértices
         glBindBuffer(GL_ARRAY_BUFFER, mesh.vboId);
-        glVertexPointer(3, GL_FLOAT, sizeof(Vertex), (void*)0);
+        glVertexPointer(3, GL_FLOAT, sizeof(Vertex),
+                        (void*)offsetof(Vertex, x));
+
+        if (useAppearance) {
+            applyMaterial(mesh.material);
+            glNormalPointer(GL_FLOAT, sizeof(Vertex),
+                            (void*)offsetof(Vertex, nx));
+
+            if (mesh.textureId != 0) {
+                glEnable(GL_TEXTURE_2D);
+                glBindTexture(GL_TEXTURE_2D, mesh.textureId);
+                glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+                glTexCoordPointer(2, GL_FLOAT, sizeof(Vertex),
+                                  (void*)offsetof(Vertex, u));
+            } else {
+                glBindTexture(GL_TEXTURE_2D, 0);
+                glDisable(GL_TEXTURE_2D);
+                glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+            }
+        }
 
         // Ativa o VBO de índices e desenha com glDrawElements
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh.indexVboId);
         glDrawElements(GL_TRIANGLES, mesh.indexCount, GL_UNSIGNED_INT, 0);
     }
+
+    glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+    if (useAppearance)
+        glDisableClientState(GL_NORMAL_ARRAY);
     glDisableClientState(GL_VERTEX_ARRAY);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+    if (textureWas) glEnable(GL_TEXTURE_2D);
+    else glDisable(GL_TEXTURE_2D);
+
+    if (!useAppearance && lightingWas)
+        glEnable(GL_LIGHTING);
 }
 
 static void renderGroup(const Group& group) {
@@ -198,6 +341,11 @@ static void renderGroup(const Group& group) {
                 if (op.points.size() < 4 || op.time <= 0.0f) break;
 
                 // Desenha a curva Catmull-Rom como linha fechada
+                GLboolean lightingWas = glIsEnabled(GL_LIGHTING);
+                GLboolean textureWas = glIsEnabled(GL_TEXTURE_2D);
+                if (lightingWas) glDisable(GL_LIGHTING);
+                if (textureWas) glDisable(GL_TEXTURE_2D);
+
                 glColor3f(1.0f, 1.0f, 0.0f);
                 glBegin(GL_LINE_LOOP);
                 const int CURVE_SAMPLES = 100;
@@ -209,6 +357,8 @@ static void renderGroup(const Group& group) {
                     glVertex3f(cpos.x, cpos.y, cpos.z);
                 }
                 glEnd();
+                if (textureWas) glEnable(GL_TEXTURE_2D);
+                if (lightingWas) glEnable(GL_LIGHTING);
 
                 // Aplica a translação animada
                 float t  = fmodf(g_time / op.time, 1.0f);
@@ -238,13 +388,13 @@ static void renderGroup(const Group& group) {
         case RenderMode::WIREFRAME:
             glColor3f(0.0f, 0.0f, 0.0f);
             glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-            renderGroupGeometry(group);
+            renderGroupGeometry(group, false);
             break;
 
         case RenderMode::SOLID:
             glColor3f(0.75f, 0.75f, 0.75f);
             glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-            renderGroupGeometry(group);
+            renderGroupGeometry(group, true);
             break;
 
         case RenderMode::SOLID_WIRE: {
@@ -252,12 +402,12 @@ static void renderGroup(const Group& group) {
             glPolygonOffset(1.0f, 1.0f);
             glColor3f(0.45f, 0.55f, 0.65f);
             glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-            renderGroupGeometry(group);
+            renderGroupGeometry(group, true);
             glDisable(GL_POLYGON_OFFSET_FILL);
 
             glColor3f(0.15f, 0.85f, 0.55f);
             glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-            renderGroupGeometry(group);
+            renderGroupGeometry(group, false);
             break;
         }
     }
@@ -280,6 +430,7 @@ void renderScene(const Scene& scene) {
               c.lookAt.x,   c.lookAt.y,   c.lookAt.z,
               0.0f, 1.0f, 0.0f);
 
+    setupLights(scene);
     renderGroup(scene.root);
 
     if (g_showAxes)

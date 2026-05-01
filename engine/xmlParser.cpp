@@ -14,11 +14,22 @@ struct ParseState {
     // Para acumular <point> dentro de um <translate time=...>
     Group*  animGroup = nullptr;
     size_t  animIdx   = 0;
+    Mesh*   currentMesh = nullptr;
 };
+
+static bool sameName(const char* a, const char* b) {
+    while (*a && *b) {
+        char ca = (char)std::tolower((unsigned char)*a);
+        char cb = (char)std::tolower((unsigned char)*b);
+        if (ca != cb) return false;
+        ++a; ++b;
+    }
+    return *a == '\0' && *b == '\0';
+}
 
 static const char* attr(const XML_Char** atts, const char* key) {
     for (int i = 0; atts[i]; i += 2)
-        if (strcmp(atts[i], key) == 0) return atts[i + 1];
+        if (sameName(atts[i], key)) return atts[i + 1];
     return nullptr;
 }
 
@@ -30,7 +41,26 @@ static bool attrBool(const XML_Char** atts, const char* key) {
     for (char& c : s)
         c = (char)std::tolower((unsigned char)c);
 
-    return s == "true";
+    return s == "true" || s == "1" || s == "yes";
+}
+
+static std::string lowerStr(const char* value) {
+    std::string s = value ? value : "";
+    for (char& c : s)
+        c = (char)std::tolower((unsigned char)c);
+    return s;
+}
+
+static float colorComp(const XML_Char** atts, const char* key, float fallback) {
+    if (auto v = attr(atts, key)) return (float)atof(v) / 255.0f;
+    return fallback;
+}
+
+static void parseRGB(const XML_Char** atts, float dst[4]) {
+    dst[0] = colorComp(atts, "R", dst[0]);
+    dst[1] = colorComp(atts, "G", dst[1]);
+    dst[2] = colorComp(atts, "B", dst[2]);
+    dst[3] = 1.0f;
 }
 
 static void XMLCALL onStart(void* ud, const XML_Char* name, const XML_Char** atts) {
@@ -61,6 +91,31 @@ static void XMLCALL onStart(void* ud, const XML_Char* name, const XML_Char** att
         if (auto v = attr(atts, "fov"))  c.fov   = atof(v);
         if (auto v = attr(atts, "near")) c.nearP = atof(v);
         if (auto v = attr(atts, "far"))  c.farP  = atof(v);
+
+    // ── Luzes ──
+    } else if (strcmp(name, "light") == 0) {
+        if (ps->scene->lights.size() >= 8) return;
+
+        Light light;
+        std::string type = lowerStr(attr(atts, "type"));
+        if (type == "directional") {
+            light.type = LightType::DIRECTIONAL;
+        } else if (type == "spot" || type == "spotlight") {
+            light.type = LightType::SPOT;
+            light.cutoff = 45.0f;
+        } else {
+            light.type = LightType::POINT;
+        }
+
+        if (auto v = attr(atts, "posx")) light.position.x = atof(v);
+        if (auto v = attr(atts, "posy")) light.position.y = atof(v);
+        if (auto v = attr(atts, "posz")) light.position.z = atof(v);
+        if (auto v = attr(atts, "dirx")) light.direction.x = atof(v);
+        if (auto v = attr(atts, "diry")) light.direction.y = atof(v);
+        if (auto v = attr(atts, "dirz")) light.direction.z = atof(v);
+        if (auto v = attr(atts, "cutoff")) light.cutoff = atof(v);
+
+        ps->scene->lights.push_back(light);
 
     // ── Grupos ──
     } else if (strcmp(name, "group") == 0) {
@@ -135,6 +190,7 @@ static void XMLCALL onStart(void* ud, const XML_Char* name, const XML_Char** att
 
     // ── Modelo ──
     } else if (strcmp(name, "model") == 0) {
+        ps->currentMesh = nullptr;
         if (auto f = attr(atts, "file")) {
             Group* g = ps->groupStack.empty()
                        ? &ps->scene->root
@@ -144,23 +200,59 @@ static void XMLCALL onStart(void* ud, const XML_Char* name, const XML_Char** att
             mesh.filename = ps->dir + f;
             FILE* mf = fopen(mesh.filename.c_str(), "r");
             if (mf) {
-                int n; fscanf(mf, "%d", &n);
-                mesh.verts.resize(n);
-                for (int i = 0; i < n; ++i) {
-                    auto& v = mesh.verts[i];
-                    fscanf(mf, "%f %f %f %f %f %f %f %f",
-                           &v.x, &v.y, &v.z,
-                           &v.nx, &v.ny, &v.nz,
-                           &v.u,  &v.v);
+                int n = 0;
+                bool ok = fscanf(mf, "%d", &n) == 1 && n > 0;
+                if (ok) {
+                    mesh.verts.resize(n);
+                    for (int i = 0; i < n; ++i) {
+                        auto& v = mesh.verts[i];
+                        if (fscanf(mf, "%f %f %f %f %f %f %f %f",
+                                   &v.x, &v.y, &v.z,
+                                   &v.nx, &v.ny, &v.nz,
+                                   &v.u,  &v.v) != 8) {
+                            ok = false;
+                            break;
+                        }
+                    }
                 }
                 fclose(mf);
-                printf("  Modelo: '%s' (%d triangulos)\n",
-                       mesh.filename.c_str(), n / 3);
-                g->meshes.push_back(std::move(mesh));
+                if (ok) {
+                    printf("  Modelo: '%s' (%d triangulos)\n",
+                           mesh.filename.c_str(), n / 3);
+                    g->meshes.push_back(std::move(mesh));
+                    ps->currentMesh = &g->meshes.back();
+                } else {
+                    fprintf(stderr, "Aviso: formato invalido em '%s'\n",
+                            mesh.filename.c_str());
+                }
             } else {
                 fprintf(stderr, "Aviso: nao foi possivel abrir '%s'\n",
                         mesh.filename.c_str());
             }
+        }
+
+    } else if (strcmp(name, "texture") == 0) {
+        if (ps->currentMesh) {
+            if (auto f = attr(atts, "file"))
+                ps->currentMesh->textureFile = ps->dir + f;
+        }
+
+    } else if (strcmp(name, "diffuse") == 0) {
+        if (ps->currentMesh) parseRGB(atts, ps->currentMesh->material.diffuse);
+
+    } else if (strcmp(name, "ambient") == 0) {
+        if (ps->currentMesh) parseRGB(atts, ps->currentMesh->material.ambient);
+
+    } else if (strcmp(name, "specular") == 0) {
+        if (ps->currentMesh) parseRGB(atts, ps->currentMesh->material.specular);
+
+    } else if (strcmp(name, "emissive") == 0) {
+        if (ps->currentMesh) parseRGB(atts, ps->currentMesh->material.emissive);
+
+    } else if (strcmp(name, "shininess") == 0) {
+        if (ps->currentMesh) {
+            if (auto v = attr(atts, "value"))
+                ps->currentMesh->material.shininess = atof(v);
         }
     }
 }
@@ -173,6 +265,9 @@ static void XMLCALL onEnd(void* ud, const XML_Char* name) {
 
     if (strcmp(name, "translate") == 0)
         ps->animGroup = nullptr;   // fecha o bloco de pontos
+
+    if (strcmp(name, "model") == 0)
+        ps->currentMesh = nullptr;
 }
 
 bool parseXML(const std::string& path, Scene& scene) {
