@@ -108,14 +108,14 @@ Model generateBezier(const std::string& patchFile, int tess) {
                     return {p.x,p.y,p.z, n.x,n.y,n.z, u, v};
                 };
 
-                // Dois triângulos por quad (CCW)
+                // Dois triângulos por quad -(CCW)
                 m.push_back(mkv(p00, n00, u0, v0));
-                m.push_back(mkv(p10, n10, u1, v0));
-                m.push_back(mkv(p11, n11, u1, v1));
-
-                m.push_back(mkv(p00, n00, u0, v0));
-                m.push_back(mkv(p11, n11, u1, v1));
                 m.push_back(mkv(p01, n01, u0, v1));
+                m.push_back(mkv(p10, n10, u1, v0));
+
+                m.push_back(mkv(p01, n01, u0, v1));
+                m.push_back(mkv(p11, n11, u1, v1));
+                m.push_back(mkv(p10, n10, u1, v0));
             }
         }
     }

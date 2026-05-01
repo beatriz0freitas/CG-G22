@@ -2,6 +2,7 @@
 
 #include <cmath>
 #include <cstring>
+#include <map>
 
 #define GL_GLEXT_PROTOTYPES
 #ifdef __APPLE__
@@ -52,36 +53,47 @@ static void catmullRomPoint(const std::vector<Vec3>& pts, float gt,
     pos   = { crP(p0.x,p1.x,p2.x,p3.x), crP(p0.y,p1.y,p2.y,p3.y), crP(p0.z,p1.z,p2.z,p3.z) };
     deriv = { crD(p0.x,p1.x,p2.x,p3.x), crD(p0.y,p1.y,p2.y,p3.y), crD(p0.z,p1.z,p2.z,p3.z) };
 }
- 
-// Constrói uma matriz de rotação (coluna-major) que alinha o eixo Z local com T
-static void buildAlignMatrix(const Vec3& T_raw, float mat[16]) {
-    float len = sqrtf(T_raw.x*T_raw.x + T_raw.y*T_raw.y + T_raw.z*T_raw.z);
-    if (len < 1e-6f) {
+
+static Vec3 cross(const Vec3& a, const Vec3& b) {
+    return { a.y*b.z - a.z*b.y,
+             a.z*b.x - a.x*b.z,
+             a.x*b.y - a.y*b.x };
+}
+
+static bool normalize(Vec3& v) {
+    float len = sqrtf(v.x*v.x + v.y*v.y + v.z*v.z);
+    if (len < 1e-6f) return false;
+    v = { v.x/len, v.y/len, v.z/len };
+    return true;
+}
+
+// Constrói uma matriz de rotação (coluna-major) que alinha o eixo X local com a tangente da curva.
+static void buildAlignMatrix(const Vec3& T_raw, Vec3& up, float mat[16]) {
+    Vec3 X = T_raw;
+    if (!normalize(X)) {
         memset(mat, 0, 16*sizeof(float));
         mat[0] = mat[5] = mat[10] = mat[15] = 1.0f;
         return;
     }
-    Vec3 T = { T_raw.x/len, T_raw.y/len, T_raw.z/len };
- 
-    // Vetor "cima" que não seja paralelo a T
-    Vec3 up = (fabsf(T.y) < 0.99f) ? Vec3{0,1,0} : Vec3{0,0,1};
- 
-    // Direita = T × up
-    Vec3 R = { T.y*up.z - T.z*up.y,
-               T.z*up.x - T.x*up.z,
-               T.x*up.y - T.y*up.x };
-    len = sqrtf(R.x*R.x + R.y*R.y + R.z*R.z);
-    R = { R.x/len, R.y/len, R.z/len };
- 
-    // Cima ortogonal = R × T
-    Vec3 U = { R.y*T.z - R.z*T.y,
-               R.z*T.x - R.x*T.z,
-               R.x*T.y - R.y*T.x };
- 
-    // Matriz coluna-major: cols = R, U, T
-    mat[0]=R.x; mat[4]=U.x; mat[8] =T.x; mat[12]=0;
-    mat[1]=R.y; mat[5]=U.y; mat[9] =T.y; mat[13]=0;
-    mat[2]=R.z; mat[6]=U.z; mat[10]=T.z; mat[14]=0;
+
+    Vec3 Z = cross(X, up);
+    if (!normalize(Z)) {
+        Vec3 fallback = (fabsf(X.y) < 0.99f) ? Vec3{0,1,0} : Vec3{0,0,1};
+        Z = cross(X, fallback);
+        if (!normalize(Z)) {
+            memset(mat, 0, 16*sizeof(float));
+            mat[0] = mat[5] = mat[10] = mat[15] = 1.0f;
+            return;
+        }
+    }
+    Vec3 Y = cross(Z, X);
+    normalize(Y);
+    up = Y;
+
+    // Matriz coluna-major: cols = X(tangente), Y(cima), Z(lateral).
+    mat[0]=X.x; mat[4]=Y.x; mat[8] =Z.x; mat[12]=0;
+    mat[1]=X.y; mat[5]=Y.y; mat[9] =Z.y; mat[13]=0;
+    mat[2]=X.z; mat[6]=Y.z; mat[10]=Z.z; mat[14]=0;
     mat[3]=0;   mat[7]=0;   mat[11]=0;   mat[15]=1;
 }
  
@@ -103,38 +115,75 @@ static void drawAxes() {
 void buildVBOs(Group& g) {
     for (auto& mesh : g.meshes) {
         if (mesh.verts.empty()) continue;
+
+        // ── Deduplicação de vértices e geração de índices ──
+        std::vector<Vertex> deduplicatedVerts;
+        std::vector<unsigned int> indices;
+        std::map<Vertex, unsigned int> vertexToIndex;
+
+        for (const auto& vert : mesh.verts) {
+            auto it = vertexToIndex.find(vert);
+            if (it != vertexToIndex.end()) {
+                // Vértice já existe, reutiliza o índice
+                indices.push_back(it->second);
+            } else {
+                // Vértice novo, adiciona à lista e guarda o índice
+                unsigned int index = (unsigned int)deduplicatedVerts.size();
+                deduplicatedVerts.push_back(vert);
+                indices.push_back(index);
+                vertexToIndex[vert] = index;
+            }
+        }
+
+        // ── VBO para vértices únicos ──
         glGenBuffers(1, &mesh.vboId);
         glBindBuffer(GL_ARRAY_BUFFER, mesh.vboId);
         glBufferData(GL_ARRAY_BUFFER,
-                     (GLsizeiptr)(mesh.verts.size() * sizeof(Vertex)),
-                     mesh.verts.data(),
+                     (GLsizeiptr)(deduplicatedVerts.size() * sizeof(Vertex)),
+                     deduplicatedVerts.data(),
                      GL_STATIC_DRAW);
-        mesh.vboCount = (int)mesh.verts.size();
+        mesh.vboCount = (int)deduplicatedVerts.size();
+
+        // ── VBO para índices (element array buffer) ──
+        glGenBuffers(1, &mesh.indexVboId);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh.indexVboId);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER,
+                     (GLsizeiptr)(indices.size() * sizeof(unsigned int)),
+                     indices.data(),
+                     GL_STATIC_DRAW);
+        mesh.indexCount = (int)indices.size();
+
         glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
     }
     for (auto& child : g.children)
         buildVBOs(child);
 }
 
-// Desenha todos os triângulos de um Group via VBOs
+// Desenha todos os triângulos de um Group via VBOs com índices
 static void renderGroupGeometry(const Group& group) {
     glEnableClientState(GL_VERTEX_ARRAY);
     for (const auto& mesh : group.meshes) {
-        if (mesh.vboId == 0) continue;
+        if (mesh.vboId == 0 || mesh.indexVboId == 0) continue;
+        
+        // Ativa o VBO de vértices
         glBindBuffer(GL_ARRAY_BUFFER, mesh.vboId);
-        // posição nos primeiros 3 floats de cada Vertex (stride = sizeof(Vertex))
         glVertexPointer(3, GL_FLOAT, sizeof(Vertex), (void*)0);
-        glDrawArrays(GL_TRIANGLES, 0, mesh.vboCount);
+
+        // Ativa o VBO de índices e desenha com glDrawElements
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh.indexVboId);
+        glDrawElements(GL_TRIANGLES, mesh.indexCount, GL_UNSIGNED_INT, 0);
     }
     glDisableClientState(GL_VERTEX_ARRAY);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
 
 static void renderGroup(const Group& group) {
     glPushMatrix();   //guarda a matriz corrente na pilha
 
     // Aplica as transforms deste grupo, pela ordem em que estão no XML
-    for (const auto& op : group.transforms) {
+    for (auto& op : group.transforms) {
         switch (op.type) {
             case TransformType::TRANSLATE:
                 glTranslatef(op.a, op.b, op.c);
@@ -146,7 +195,7 @@ static void renderGroup(const Group& group) {
                 glScalef(op.a, op.b, op.c);
                 break;
             case TransformType::ANIM_TRANSLATE: {
-                if (op.points.size() < 4) break;
+                if (op.points.size() < 4 || op.time <= 0.0f) break;
 
                 // Desenha a curva Catmull-Rom como linha fechada
                 glColor3f(1.0f, 1.0f, 0.0f);
@@ -169,12 +218,13 @@ static void renderGroup(const Group& group) {
                 glTranslatef(pos.x, pos.y, pos.z);
                 if (op.align) {
                     float mat[16];
-                    buildAlignMatrix(deriv, mat);
+                    buildAlignMatrix(deriv, op.Yant, mat);
                     glMultMatrixf(mat);
                 }
                 break;
             }
             case TransformType::ANIM_ROTATE: {
+                if (op.time <= 0.0f) break;
                 float angle = fmodf(g_time / op.time * 360.0f, 360.0f);
                 glRotatef(angle, op.b, op.c, op.d);
                 break;
