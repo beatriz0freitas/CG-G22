@@ -76,6 +76,14 @@ static void initOrbit() {
     g_scene.camera.lookAt = g_initCamera.lookAt; // restaura lookAt também
 }
 
+static void countGroup(const Group& group, size_t& models, size_t& tris) {
+    models += group.meshes.size();
+    for (const auto& mesh : group.meshes)
+        tris += mesh.verts.size() / 3;
+    for (const auto& child : group.children)
+        countGroup(child, models, tris);
+}
+
 // Atualiza o título da janela com FPS e modo de renderização
 static void updateTitle() {
     const char *modeStr = "";
@@ -287,11 +295,11 @@ int main(int argc, char *argv[]) {
     g_initCamera = g_scene.camera; // guarda estado original para reset com R
 
     // Conta o total de triângulos carregados
+    size_t totalModels = 0;
     size_t totalTris = 0;
-    for (const auto &mesh : g_scene.root.meshes)
-        totalTris += mesh.verts.size() / 3;
+    countGroup(g_scene.root, totalModels, totalTris);
     printf("Pronto: %zu modelo(s), %zu triangulo(s) total.\n",
-           g_scene.root.meshes.size(), totalTris);
+           totalModels, totalTris);
 
     initOrbit();
     applyOrbit();
@@ -304,6 +312,15 @@ int main(int argc, char *argv[]) {
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
     glCullFace(GL_BACK);
+    glEnable(GL_NORMALIZE);
+#ifdef GL_RESCALE_NORMAL
+    glEnable(GL_RESCALE_NORMAL);
+#endif
+    glShadeModel(GL_SMOOTH);
+    {
+        float amb[4] = {1.0f, 1.0f, 1.0f, 1.0f};
+        glLightModelfv(GL_LIGHT_MODEL_AMBIENT, amb);
+    }
     glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
 
     // Fase 3: upload de todos os modelos para a GPU via VBOs

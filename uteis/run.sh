@@ -7,6 +7,7 @@
 #   ./run.sh --test1 <n>      - corre apenas o teste N da fase 1
 #   ./run.sh --test2 <n>      - corre apenas o teste N da fase 2
 #   ./run.sh --test3 <n>      - corre apenas o teste N da fase 3
+#   ./run.sh --test4 <n>      - corre apenas o teste N da fase 4
 #   ./run.sh --scene <nome>   - corre uma scene especifica (ex: cone)
 #   ./run.sh --build-only     - so compila, nao gera nem corre nada
 #   ./run.sh --clean          - apaga build/ e todos os .3d gerados
@@ -38,31 +39,6 @@ if [[ "${1:-}" == "--clean" ]]; then
     echo "Pronto."
     exit 0
 fi
-
-if [[ "${1:-}" == "--test1" ]]; then
-    [[ -n "$2" ]] || { echo "Indica o numero do teste (1-5)."; exit 1; }
-    run_engine "test_files/test_files_phase_1/test_1_${2}.xml"
-    exit 0
-fi
-
-if [[ "${1:-}" == "--test2" ]]; then
-    [[ -n "$2" ]] || { echo "Indica o numero do teste (1-4)."; exit 1; }
-    run_engine "test_files/test_files_phase_2/test_2_${2}.xml"
-    exit 0
-fi
-
-if [[ "${1:-}" == "--test3" ]]; then
-    [[ -n "$2" ]] || { echo "Indica o numero do teste (1-2)."; exit 1; }
-    run_engine "test_files/test_files_phase_3/test_3_${2}.xml"
-    exit 0
-fi
-
-if [[ "${1:-}" == "--scene" ]]; then
-    [[ -n "$2" ]] || { echo "Indica o nome da scene (ex: cone)."; exit 1; }
-    run_engine "scenes/${2}.xml"
-    exit 0
-fi
-
 
 # Compilacao (comum a todos os modos restantes)
 mkdir -p build
@@ -110,6 +86,44 @@ fi
 
 if [[ -d "test_files/test_files_phase_3" ]]; then
     gen bezier uteis/teapot.patch 10 test_files/test_files_phase_3/bezier_10.3d
+fi
+
+if [[ -d "test_files/test_files_phase_4" ]]; then
+    gen plane  2 3       test_files/test_files_phase_4/plane_2_3.3d
+    gen box    2 3       test_files/test_files_phase_4/box_2_3.3d
+    gen cone   1 2 4 3   test_files/test_files_phase_4/cone_1_2_4_3.3d
+    gen sphere 1 8 8     test_files/test_files_phase_4/sphere_1_8_8.3d
+    gen bezier uteis/teapot.patch 10 test_files/test_files_phase_4/bezier_10.3d
+fi
+
+if [[ "${1:-}" == "--test1" ]]; then
+    [[ -n "$2" ]] || { echo "Indica o numero do teste (1-5)."; exit 1; }
+    run_engine "test_files/test_files_phase_1/test_1_${2}.xml"
+    exit 0
+fi
+
+if [[ "${1:-}" == "--test2" ]]; then
+    [[ -n "$2" ]] || { echo "Indica o numero do teste (1-4)."; exit 1; }
+    run_engine "test_files/test_files_phase_2/test_2_${2}.xml"
+    exit 0
+fi
+
+if [[ "${1:-}" == "--test3" ]]; then
+    [[ -n "$2" ]] || { echo "Indica o numero do teste (1-2)."; exit 1; }
+    run_engine "test_files/test_files_phase_3/test_3_${2}.xml"
+    exit 0
+fi
+
+if [[ "${1:-}" == "--test4" ]]; then
+    [[ -n "$2" ]] || { echo "Indica o numero do teste (1-6)."; exit 1; }
+    run_engine "test_files/test_files_phase_4/test_4_${2}.xml"
+    exit 0
+fi
+
+if [[ "${1:-}" == "--scene" ]]; then
+    [[ -n "$2" ]] || { echo "Indica o nome da scene (ex: cone)."; exit 1; }
+    run_engine "scenes/${2}.xml"
+    exit 0
 fi
 
 if [[ "${1:-}" == "--scenes" ]]; then

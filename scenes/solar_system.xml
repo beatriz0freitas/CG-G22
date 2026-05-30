@@ -8,6 +8,11 @@
         <projection fov="60" near="1" far="1000" />
     </camera>
 
+    <lights>
+        <light type="point" posx="0" posy="0" posz="0" />
+        <light type="directional" dirx="-0.3" diry="1" dirz="0.4" />
+    </lights>
+
     <group>
         <!-- Sol (auto-rotação) -->
         <group>
@@ -16,7 +21,15 @@
                 <scale x="4.0" y="4.0" z="4.0" />
             </transform>
             <models>
-                <model file="../models/sphere.3d" />
+                <model file="../models/sphere.3d">
+                    <color>
+                        <diffuse R="255" G="210" B="80" />
+                        <ambient R="255" G="170" B="40" />
+                        <specular R="0" G="0" B="0" />
+                        <emissive R="255" G="150" B="20" />
+                        <shininess value="0" />
+                    </color>
+                </model>
             </models>
         </group>
 
@@ -52,7 +65,16 @@
                 <scale x="0.62" y="0.62" z="0.62" />
             </transform>
             <models>
-                <model file="../models/sphere.3d" />
+                <model file="../models/sphere.3d">
+                    <texture file="../test_files/test_files_phase_4/earth.jpg" />
+                    <color>
+                        <diffuse R="220" G="220" B="220" />
+                        <ambient R="35" G="45" B="55" />
+                        <specular R="120" G="120" B="120" />
+                        <emissive R="0" G="0" B="0" />
+                        <shininess value="32" />
+                    </color>
+                </model>
             </models>
             <!-- Lua — período orbital: 2s em torno da Terra -->
             <group>
@@ -174,7 +196,15 @@
                     <scale x="2.2" y="0.08" z="2.2" />
                 </transform>
                 <models>
-                    <model file="../models/torus.3d" />
+                    <model file="../models/torus.3d">
+                        <color>
+                            <diffuse R="190" G="160" B="95" />
+                            <ambient R="45" G="38" B="24" />
+                            <specular R="30" G="30" B="30" />
+                            <emissive R="0" G="0" B="0" />
+                            <shininess value="8" />
+                        </color>
+                    </model>
                 </models>
             </group>
             <!-- Titan — 8s -->
@@ -308,7 +338,16 @@
                 <scale x="0.4" y="0.4" z="0.4" />
             </transform>
             <models>
-                <model file="../models/bezier_10.3d" />
+                <model file="../models/bezier_10.3d">
+                    <texture file="../test_files/test_files_phase_4/teapot.jpg" />
+                    <color>
+                        <diffuse R="210" G="210" B="210" />
+                        <ambient R="40" G="40" B="40" />
+                        <specular R="255" G="255" B="255" />
+                        <emissive R="0" G="0" B="0" />
+                        <shininess value="64" />
+                    </color>
+                </model>
             </models>
         </group>
     </group>

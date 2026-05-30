@@ -25,22 +25,24 @@ Model generateCone(float radius, float height, int slices, int stacks)
         {
             float theta0 = j * dTheta;
             float theta1 = theta0 + dTheta;
+            float u0 = (float)j / slices;
+            float u1 = (float)(j + 1) / slices;
 
             // Normal lateral: componente radial * cosA + Y * sinA
-            auto makeLatVertex = [&](float r, float y, float theta) -> Vertex
+            auto makeLatVertex = [&](float r, float y, float theta, float u, float v) -> Vertex
             {
                 float nx = cosA * sinf(theta);
                 float ny = sinA;
                 float nz = cosA * cosf(theta);
                 return {r * sinf(theta), y, r * cosf(theta),
                         nx, ny, nz,
-                        0, 0};
+                        u, v};
             };
 
-            Vertex v00 = makeLatVertex(r0, y0, theta0);
-            Vertex v01 = makeLatVertex(r0, y0, theta1);
-            Vertex v10 = makeLatVertex(r1, y1, theta0);
-            Vertex v11 = makeLatVertex(r1, y1, theta1);
+            Vertex v00 = makeLatVertex(r0, y0, theta0, u0, t0);
+            Vertex v01 = makeLatVertex(r0, y0, theta1, u1, t0);
+            Vertex v10 = makeLatVertex(r1, y1, theta0, u0, t1);
+            Vertex v11 = makeLatVertex(r1, y1, theta1, u1, t1);
 
             m.push_back(v00);
             m.push_back(v01);
@@ -56,9 +58,12 @@ Model generateCone(float radius, float height, int slices, int stacks)
     {
         float theta0 = j * dTheta;
         float theta1 = theta0 + dTheta;
-        m.push_back({0, 0, 0, 0, -1, 0, 0, 0});
-        m.push_back({radius * sinf(theta1), 0, radius * cosf(theta1), 0, -1, 0, 0, 0});
-        m.push_back({radius * sinf(theta0), 0, radius * cosf(theta0), 0, -1, 0, 0, 0});
+        float s0 = sinf(theta0), c0 = cosf(theta0);
+        float s1 = sinf(theta1), c1 = cosf(theta1);
+
+        m.push_back({0, 0, 0, 0, -1, 0, 0.5f, 0.5f});
+        m.push_back({radius * s1, 0, radius * c1, 0, -1, 0, 0.5f + s1 * 0.5f, 0.5f + c1 * 0.5f});
+        m.push_back({radius * s0, 0, radius * c0, 0, -1, 0, 0.5f + s0 * 0.5f, 0.5f + c0 * 0.5f});
     }
 
     return m;
