@@ -13,6 +13,11 @@ struct Vertex {
     float nx, ny, nz;  // normal
     float u,  v;       // textura UV
 
+    bool operator==(const Vertex& o) const {
+        return x==o.x && y==o.y && z==o.z &&
+               nx==o.nx && ny==o.ny && nz==o.nz &&
+               u==o.u && v==o.v;
+    }
     bool operator<(const Vertex& other) const {
     if (x != other.x) return x < other.x;
     if (y != other.y) return y < other.y;
@@ -61,6 +66,8 @@ struct TransformOp {
     bool  align = false;      // orientar o objeto ao longo da curva
     mutable Vec3 Yant = {0, 1, 0};   // Y_{i-1} do referencial de alinhamento
     std::vector<Vec3> points; // pontos de controlo Catmull-Rom
+    unsigned int curveVboId  = 0;   // VBO pré-computado da curva (visualização)
+    int          curveVboCount = 0;
 };
 
 

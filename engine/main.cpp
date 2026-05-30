@@ -321,7 +321,7 @@ int main(int argc, char *argv[]) {
         float amb[4] = {1.0f, 1.0f, 1.0f, 1.0f};
         glLightModelfv(GL_LIGHT_MODEL_AMBIENT, amb);
     }
-    glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
     // Fase 3: upload de todos os modelos para a GPU via VBOs
     buildVBOs(g_scene.root);
