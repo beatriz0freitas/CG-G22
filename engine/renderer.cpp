@@ -6,6 +6,18 @@
 #include <cstdio>
 #include <cstring>
 #include <map>
+#include <unordered_map>
+
+namespace std {
+template<> struct hash<Vertex> {
+    size_t operator()(const Vertex& v) const noexcept {
+        size_t s = 0;
+        for (float f : {v.x, v.y, v.z, v.nx, v.ny, v.nz, v.u, v.v})
+            s ^= hash<float>{}(f) + 0x9e3779b9u + (s << 6) + (s >> 2);
+        return s;
+    }
+};
+}
 
 #define GL_GLEXT_PROTOTYPES
 #ifdef __APPLE__
@@ -237,7 +249,7 @@ void buildVBOs(Group& g) {
         // ── Deduplicação de vértices e geração de índices ──
         std::vector<Vertex> deduplicatedVerts;
         std::vector<unsigned int> indices;
-        std::map<Vertex, unsigned int> vertexToIndex;
+        std::unordered_map<Vertex, unsigned int> vertexToIndex;
 
         for (const auto& vert : mesh.verts) {
             auto jt = vertexToIndex.find(vert);
@@ -274,6 +286,29 @@ void buildVBOs(Group& g) {
         s_geoCache[mesh.filename] = {mesh.vboId, mesh.indexVboId,
                                      mesh.vboCount, mesh.indexCount};
     }
+
+    // Pré-computa as curvas Catmull-Rom em VBOs (só uma vez, não por frame)
+    const int CURVE_SAMPLES = 100;
+    for (auto& op : g.transforms) {
+        if (op.type != TransformType::ANIM_TRANSLATE) continue;
+        if (op.points.size() < 4 || op.time <= 0.0f) continue;
+
+        std::vector<float> pts;
+        pts.reserve(CURVE_SAMPLES * 3);
+        for (int i = 0; i < CURVE_SAMPLES; ++i) {
+            float gt = (float)i / CURVE_SAMPLES * (float)op.points.size();
+            Vec3 pos, deriv;
+            catmullRomPoint(op.points, gt, pos, deriv);
+            pts.push_back(pos.x); pts.push_back(pos.y); pts.push_back(pos.z);
+        }
+        glGenBuffers(1, &op.curveVboId);
+        glBindBuffer(GL_ARRAY_BUFFER, op.curveVboId);
+        glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)(pts.size() * sizeof(float)),
+                     pts.data(), GL_STATIC_DRAW);
+        op.curveVboCount = CURVE_SAMPLES;
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+    }
+
     for (auto& child : g.children)
         buildVBOs(child);
 }
@@ -355,25 +390,24 @@ static void renderGroup(const Group& group) {
             case TransformType::ANIM_TRANSLATE: {
                 if (op.points.size() < 4 || op.time <= 0.0f) break;
 
-                // Desenha a curva Catmull-Rom como linha fechada
-                GLboolean lightingWas = glIsEnabled(GL_LIGHTING);
-                GLboolean textureWas = glIsEnabled(GL_TEXTURE_2D);
-                if (lightingWas) glDisable(GL_LIGHTING);
-                if (textureWas) glDisable(GL_TEXTURE_2D);
+                // Desenha a curva Catmull-Rom a partir do VBO pré-computado
+                if (op.curveVboId != 0) {
+                    GLboolean lightingWas = glIsEnabled(GL_LIGHTING);
+                    GLboolean textureWas  = glIsEnabled(GL_TEXTURE_2D);
+                    if (lightingWas) glDisable(GL_LIGHTING);
+                    if (textureWas)  glDisable(GL_TEXTURE_2D);
 
-                glColor3f(1.0f, 1.0f, 0.0f);
-                glBegin(GL_LINE_LOOP);
-                const int CURVE_SAMPLES = 100;
-                for (int i = 0; i < CURVE_SAMPLES; ++i) {
-                    float ct  = (float)i / CURVE_SAMPLES;
-                    float cgt = ct * op.points.size();
-                    Vec3 cpos, cder;
-                    catmullRomPoint(op.points, cgt, cpos, cder);
-                    glVertex3f(cpos.x, cpos.y, cpos.z);
+                    glColor3f(1.0f, 1.0f, 0.0f);
+                    glBindBuffer(GL_ARRAY_BUFFER, op.curveVboId);
+                    glEnableClientState(GL_VERTEX_ARRAY);
+                    glVertexPointer(3, GL_FLOAT, 0, nullptr);
+                    glDrawArrays(GL_LINE_LOOP, 0, op.curveVboCount);
+                    glDisableClientState(GL_VERTEX_ARRAY);
+                    glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+                    if (textureWas)  glEnable(GL_TEXTURE_2D);
+                    if (lightingWas) glEnable(GL_LIGHTING);
                 }
-                glEnd();
-                if (textureWas) glEnable(GL_TEXTURE_2D);
-                if (lightingWas) glEnable(GL_LIGHTING);
 
                 // Aplica a translação animada
                 float t  = fmodf(g_time / op.time, 1.0f);
