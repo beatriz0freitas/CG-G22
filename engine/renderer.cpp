@@ -211,13 +211,28 @@ static void drawAxes() {
     if (lightingWas) glEnable(GL_LIGHTING);
 }
 
-// Faz upload da geometria de todos os Mesh para VBOs na GPU
+struct GeoCache { unsigned int vboId, indexVboId; int vboCount, indexCount; };
+static std::map<std::string, GeoCache> s_geoCache;
+
+// Faz upload da geometria de todos os Mesh para VBOs na GPU.
+// Meshes com o mesmo ficheiro partilham os mesmos VBOs (zero uploads duplicados).
 void buildVBOs(Group& g) {
     for (auto& mesh : g.meshes) {
-        if (mesh.verts.empty()) continue;
-
         if (!mesh.textureFile.empty())
             mesh.textureId = loadTexture(mesh.textureFile);
+
+        if (mesh.verts.empty()) continue;
+
+        auto it = s_geoCache.find(mesh.filename);
+        if (it != s_geoCache.end()) {
+            mesh.vboId      = it->second.vboId;
+            mesh.indexVboId = it->second.indexVboId;
+            mesh.vboCount   = it->second.vboCount;
+            mesh.indexCount = it->second.indexCount;
+            mesh.verts.clear();
+            mesh.verts.shrink_to_fit();
+            continue;
+        }
 
         // ── Deduplicação de vértices e geração de índices ──
         std::vector<Vertex> deduplicatedVerts;
@@ -225,12 +240,10 @@ void buildVBOs(Group& g) {
         std::map<Vertex, unsigned int> vertexToIndex;
 
         for (const auto& vert : mesh.verts) {
-            auto it = vertexToIndex.find(vert);
-            if (it != vertexToIndex.end()) {
-                // Vértice já existe, reutiliza o índice
-                indices.push_back(it->second);
+            auto jt = vertexToIndex.find(vert);
+            if (jt != vertexToIndex.end()) {
+                indices.push_back(jt->second);
             } else {
-                // Vértice novo, adiciona à lista e guarda o índice
                 unsigned int index = (unsigned int)deduplicatedVerts.size();
                 deduplicatedVerts.push_back(vert);
                 indices.push_back(index);
@@ -238,26 +251,28 @@ void buildVBOs(Group& g) {
             }
         }
 
-        // ── VBO para vértices únicos ──
+        mesh.verts.clear();
+        mesh.verts.shrink_to_fit();
+
         glGenBuffers(1, &mesh.vboId);
         glBindBuffer(GL_ARRAY_BUFFER, mesh.vboId);
         glBufferData(GL_ARRAY_BUFFER,
                      (GLsizeiptr)(deduplicatedVerts.size() * sizeof(Vertex)),
-                     deduplicatedVerts.data(),
-                     GL_STATIC_DRAW);
+                     deduplicatedVerts.data(), GL_STATIC_DRAW);
         mesh.vboCount = (int)deduplicatedVerts.size();
 
-        // ── VBO para índices (element array buffer) ──
         glGenBuffers(1, &mesh.indexVboId);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh.indexVboId);
         glBufferData(GL_ELEMENT_ARRAY_BUFFER,
                      (GLsizeiptr)(indices.size() * sizeof(unsigned int)),
-                     indices.data(),
-                     GL_STATIC_DRAW);
+                     indices.data(), GL_STATIC_DRAW);
         mesh.indexCount = (int)indices.size();
 
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+        s_geoCache[mesh.filename] = {mesh.vboId, mesh.indexVboId,
+                                     mesh.vboCount, mesh.indexCount};
     }
     for (auto& child : g.children)
         buildVBOs(child);
