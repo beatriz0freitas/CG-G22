@@ -40,6 +40,10 @@ int main(int argc, char* argv[]) {
             auto m = generateSphere(std::stof(args[1]), std::stoi(args[2]), std::stoi(args[3]));
             return saveToFile(m, args[4]) ? 0 : 1;
 
+        } else if (cmd == "skybox" && argc == 6) {
+            auto m = generateSphere(std::stof(args[1]), std::stoi(args[2]), std::stoi(args[3]), true);
+            return saveToFile(m, args[4]) ? 0 : 1;
+
         } else if (cmd == "cone" && argc == 7) {
             auto m = generateCone(std::stof(args[1]), std::stof(args[2]),
                                   std::stoi(args[3]), std::stoi(args[4]));

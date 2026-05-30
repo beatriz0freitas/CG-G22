@@ -5,4 +5,4 @@
 // radius = raio
 // slices = divisões horizontais (volta completa)
 // stacks = divisões verticais (polo a polo)
-Model generateSphere(float radius, int slices, int stacks);
+Model generateSphere(float radius, int slices, int stacks, bool invert = false);

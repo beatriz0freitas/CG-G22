@@ -1,7 +1,7 @@
 #include "sphere.h"
 #include <cmath>
 
-Model generateSphere(float radius, int slices, int stacks)
+Model generateSphere(float radius, int slices, int stacks, bool invert)
 {
     Model m;
     float dPhi = (float)M_PI / stacks;
@@ -38,12 +38,18 @@ Model generateSphere(float radius, int slices, int stacks)
             Vertex v10 = makeVertex(phi1, theta0, u0, v1);
             Vertex v11 = makeVertex(phi1, theta1, u1, v1);
 
-            m.push_back(v00);
-            m.push_back(v01);
-            m.push_back(v10);
-            m.push_back(v01);
-            m.push_back(v11);
-            m.push_back(v10);
+            if (invert) {
+                // Winding invertido: visível de dentro; normais apontam para o centro
+                v00.nx=-v00.nx; v00.ny=-v00.ny; v00.nz=-v00.nz;
+                v01.nx=-v01.nx; v01.ny=-v01.ny; v01.nz=-v01.nz;
+                v10.nx=-v10.nx; v10.ny=-v10.ny; v10.nz=-v10.nz;
+                v11.nx=-v11.nx; v11.ny=-v11.ny; v11.nz=-v11.nz;
+                m.push_back(v00); m.push_back(v10); m.push_back(v01);
+                m.push_back(v01); m.push_back(v10); m.push_back(v11);
+            } else {
+                m.push_back(v00); m.push_back(v01); m.push_back(v10);
+                m.push_back(v01); m.push_back(v11); m.push_back(v10);
+            }
         }
     }
     return m;
