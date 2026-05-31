@@ -93,7 +93,9 @@ if [[ -d "test_files/test_files_phase_4" ]]; then
     gen plane  2 3       test_files/test_files_phase_4/plane_2_3.3d
     gen box    2 3       test_files/test_files_phase_4/box_2_3.3d
     gen cone   1 2 4 3   test_files/test_files_phase_4/cone_1_2_4_3.3d
+    gen cone   1 2 10 3  test_files/test_files_phase_4/cone_1_2_10_3.3d
     gen sphere 1 8 8     test_files/test_files_phase_4/sphere_1_8_8.3d
+    gen sphere 1 32 16   test_files/test_files_phase_4/sphere_1_32_16.3d
     gen bezier uteis/teapot.patch 10 test_files/test_files_phase_4/bezier_10.3d
 fi
 
@@ -116,7 +118,7 @@ if [[ "${1:-}" == "--test3" ]]; then
 fi
 
 if [[ "${1:-}" == "--test4" ]]; then
-    [[ -n "$2" ]] || { echo "Indica o numero do teste (1-6)."; exit 1; }
+    [[ -n "$2" ]] || { echo "Indica o numero do teste (1-7)."; exit 1; }
     run_engine "test_files/test_files_phase_4/test_4_${2}.xml"
     exit 0
 fi
