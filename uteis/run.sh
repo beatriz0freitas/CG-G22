@@ -65,6 +65,7 @@ mkdir -p models
 gen plane    1   3         models/plane.3d
 gen box      2   3         models/box.3d
 gen sphere   1   10  10    models/sphere.3d
+gen skybox   60  40  40    models/sky.3d
 gen cone     1   2   4  3  models/cone.3d
 gen cylinder 1   2   16  4 models/cylinder.3d
 gen torus    1   0.3 16 32 models/torus.3d

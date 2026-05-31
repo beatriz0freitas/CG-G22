@@ -268,7 +268,7 @@
                 </transform>
                 <models>
                     <model file="../models/torus.3d">
-                        <texture file="textures/2k_saturn_ring.jpg" />
+                        <texture file="textures/2k_saturn_ring_rotated.jpg" />
                         <color>
                             <diffuse R="220" G="200" B="160" />
                             <ambient R="45" G="38" B="24" />
