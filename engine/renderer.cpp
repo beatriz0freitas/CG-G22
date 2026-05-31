@@ -30,6 +30,7 @@ template<> struct hash<Vertex> {
 // ── Estado global do renderer ──
 RenderMode g_renderMode = RenderMode::SOLID;
 bool       g_showAxes   = true;
+bool       g_showCatmullCurve = true;
 float      g_time       = 0.0f;
 
 void toggleRenderMode() {
@@ -38,6 +39,10 @@ void toggleRenderMode() {
         case RenderMode::SOLID:      g_renderMode = RenderMode::SOLID_WIRE; break;
         case RenderMode::SOLID_WIRE: g_renderMode = RenderMode::WIREFRAME;  break;
     }
+}
+
+void toggleCatmullCurve() {
+    g_showCatmullCurve = !g_showCatmullCurve;
 }
 
 // ── Catmull-Rom ──
@@ -391,7 +396,7 @@ static void renderGroup(const Group& group) {
                 if (op.points.size() < 4 || op.time <= 0.0f) break;
 
                 // Desenha a curva Catmull-Rom a partir do VBO pré-computado
-                if (op.curveVboId != 0) {
+                if (g_showCatmullCurve && op.curveVboId != 0) {
                     GLboolean lightingWas = glIsEnabled(GL_LIGHTING);
                     GLboolean textureWas  = glIsEnabled(GL_TEXTURE_2D);
                     if (lightingWas) glDisable(GL_LIGHTING);

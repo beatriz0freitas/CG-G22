@@ -88,6 +88,7 @@ Recebe um ficheiro XML de configuração da scene. Os caminhos dos modelos no XM
 | Rato (botão esq. + arrastar) | Órbita livre |
 | Scroll | Zoom in / out |
 | `M` | Cicla modo: Wireframe → Solid → Solid+Wireframe |
+| `C` | Mostra / esconde a curva Catmull-Rom |
 | `B` | Toggle eixos XYZ |
 | `R` | Reset câmara para a posição do XML |
 | `ESC` | Fechar |

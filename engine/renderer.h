@@ -13,10 +13,12 @@ enum class RenderMode {
 // Estado partilhado para o main.cpp poder ler
 extern RenderMode g_renderMode;
 extern bool       g_showAxes;
+extern bool       g_showCatmullCurve;
 extern float      g_time;   // segundos desde o início, actualizado pelo main
 
 // Cicla para o próximo modo de renderização
 void toggleRenderMode();
+void toggleCatmullCurve();
 
 // Faz upload de todos os VBOs da scene para a GPU (chamar depois de glutCreateWindow)
 void buildVBOs(Group& g);

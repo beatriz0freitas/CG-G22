@@ -8,6 +8,7 @@
  *   R                – reset câmara para a posição definida no XML
  *   M                – cicla modo de renderização (wireframe → solid → solid+wire)
  *   B                – toggle eixos XYZ
+ *   C                – mostrar / esconder a linha Catmull-Rom
  *   Q / E            – zoom in / out (altera radius)
  *   Scroll           – zoom in / out (altera radius)
  *   Rato (esq.+drag) – órbita livre
@@ -100,8 +101,9 @@ static void updateTitle() {
     }
     char title[128];
     snprintf(title, sizeof(title),
-             "CG Engine  |  %.1f FPS  |  %s  |  Eixos: %s  |  r=%.2f",
-             g_fps, modeStr, g_showAxes ? "on" : "off", g_radius);
+             "CG Engine  |  %.1f FPS  |  %s  |  Eixos: %s  |  Catmull: %s  |  r=%.2f",
+             g_fps, modeStr, g_showAxes ? "on" : "off",
+             g_showCatmullCurve ? "on" : "off", g_radius);
     glutSetWindowTitle(title);
 }
 
@@ -209,6 +211,10 @@ static void keyboard(unsigned char key, int, int) {
         case 'b':
         case 'B':
             g_showAxes = !g_showAxes;
+            break;
+        case 'c':
+        case 'C':
+            toggleCatmullCurve();
             break;
         case 27:
             exit(0);
