@@ -77,6 +77,7 @@ Recebe um ficheiro XML de configuração da scene. Os caminhos dos modelos no XM
 
 ## Controlos
 
+### Explorer Mode (Padrão)
 | Tecla / Ação | Efeito |
 |---|---|
 | `W` / `S` | Órbita vertical |
@@ -87,10 +88,27 @@ Recebe um ficheiro XML de configuração da scene. Os caminhos dos modelos no XM
 | `Z` / `X` | Subir / descer (eixo Y) |
 | Rato (botão esq. + arrastar) | Órbita livre |
 | Scroll | Zoom in / out |
+
+### Third Person Mode (Ativado com `V`)
+| Tecla / Ação | Efeito |
+|---|---|
+| `W` / `S` | Avança / recua o character |
+| `A` / `D` | Deslocamento lateral do character |
+| `Z` / `X` | Subir / descer o character |
+| Setas ↑ ↓ | Subir / descer o character |
+| Setas ← → | Roda a câmara ao redor do character |
+| `Q` / `E` | Zoom in / out |
+| Rato (botão esq. + arrastar) | Roda câmara (horizontal) + move character (vertical) |
+| Scroll | Zoom in / out |
+
+### Global
+| Tecla / Ação | Efeito |
+|---|---|
+| `V` | Alterna entre Explorer Mode e Third Person Mode |
 | `M` | Cicla modo: Wireframe → Solid → Solid+Wireframe |
 | `C` | Mostra / esconde a curva Catmull-Rom |
 | `B` | Toggle eixos XYZ |
-| `R` | Reset câmara para a posição do XML |
+| `R` | Reset para Explorer Mode na posição original do XML |
 | `ESC` | Fechar |
 
 ---
