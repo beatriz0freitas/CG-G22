@@ -1,22 +1,33 @@
 /*
- * Controlos:
- *   W / S            – órbita vertical   (Explorer Mode)
- *   A / D            – órbita horizontal (Explorer Mode)
+ * Controlos (Explorer Mode):
+ *   W / S            – órbita vertical
+ *   A / D            – órbita horizontal
  *   Seta Cima/Baixo  – avança / recua (move position no plano XZ)
  *   Seta Esq./Dir.   – strafe lateral  (move position no plano XZ)
  *   Z / X            – sobe / desce    (move position em Y)
+ *   Q / E            – zoom in / out (altera radius)
+ *   Scroll           – zoom in / out (altera radius)
+ *   Rato (esq.+drag) – órbita livre
+ *
+ * Controlos (Third Person Mode):
+ *   W / A / S / D    – move character (target) no plano XZ
+ *   Seta Cima/Baixo  – sobe / desce character em Y
+ *   Seta Esq./Dir.   – roda câmara ao redor do character
+ *   Q / E            – zoom in / out (altera distance)
+ *   Scroll           – zoom in / out (altera distance)
+ *   Rato (esq.+drag) – roda câmara ao redor do character
+ *
+ * Global:
+ *   V                – muda entre Explorer Mode e Third Person Mode
  *   R                – reset câmara para a posição definida no XML
  *   M                – cicla modo de renderização (wireframe → solid → solid+wire)
  *   B                – toggle eixos XYZ
  *   C                – mostrar / esconder a linha Catmull-Rom
- *   Q / E            – zoom in / out (altera radius)
- *   Scroll           – zoom in / out (altera radius)
- *   Rato (esq.+drag) – órbita livre
  *   ESC              – sair
  *
  * Modelo de câmara:
  *   Explorer Mode — alpha/beta/radius → coordenadas cartesianas via esféricas
- *   FPS forward   — P' = P + k×D,  lookAt' = lookAt + k×D  (slide 6)
+ *   Third Person  — camera segue target mantendo distance e angle
  */
 
 #ifdef __APPLE__
@@ -38,10 +49,18 @@
 static Scene g_scene;
 static Camera g_initCamera; // posição original do XML para o reset com R
 
-// Câmara orbital
+// Câmara orbital (Explorer Mode)
 static float g_alpha = 0.0f;
 static float g_beta = 0.3f;
 static float g_radius = 5.0f;
+
+// Third Person Mode
+enum class CameraMode { EXPLORER, THIRD_PERSON };
+static CameraMode g_cameraMode = CameraMode::EXPLORER;
+static Vec3 g_targetPos = {0.0f, 0.0f, 0.0f}; // posição do character
+static float g_thirdPersonAlpha = 0.0f;  // ângulo horizontal ao redor do character
+static float g_thirdPersonDistance = 3.0f; // distância da câmara ao character
+static float g_thirdPersonHeight = 1.0f;   // altura relativa ao character
 
 // Rato
 static bool g_drag = false;
@@ -58,6 +77,18 @@ static void applyOrbit() {
     c.position.x = c.lookAt.x + g_radius * cosf(g_beta) * sinf(g_alpha);
     c.position.y = c.lookAt.y + g_radius * sinf(g_beta);
     c.position.z = c.lookAt.z + g_radius * cosf(g_beta) * cosf(g_alpha);
+}
+
+// ── Third Person Camera ──
+static void applyThirdPerson() {
+    Camera &c = g_scene.camera;
+    // Câmara posicionada atrás e acima do character (target)
+    c.lookAt = g_targetPos;
+    c.lookAt.y += g_thirdPersonHeight;
+    
+    c.position.x = g_targetPos.x + g_thirdPersonDistance * sinf(g_thirdPersonAlpha);
+    c.position.y = g_targetPos.y + g_thirdPersonHeight + g_thirdPersonDistance * 0.3f; // um pouco acima
+    c.position.z = g_targetPos.z + g_thirdPersonDistance * cosf(g_thirdPersonAlpha);
 }
 
 // Calcula alpha/beta/radius a partir de uma posição de câmara
@@ -99,11 +130,12 @@ static void updateTitle() {
             modeStr = "Solid+Wireframe";
             break;
     }
+    const char *camStr = (g_cameraMode == CameraMode::EXPLORER) ? "Explorer" : "Third Person";
     char title[128];
     snprintf(title, sizeof(title),
-             "CG Engine  |  %.1f FPS  |  %s  |  Eixos: %s  |  Catmull: %s  |  r=%.2f",
-             g_fps, modeStr, g_showAxes ? "on" : "off",
-             g_showCatmullCurve ? "on" : "off", g_radius);
+             "CG Engine  |  %.1f FPS  |  %s  |  Câmara: %s  |  Eixos: %s  |  Catmull: %s",
+             g_fps, modeStr, camStr, g_showAxes ? "on" : "off",
+             g_showCatmullCurve ? "on" : "off");
     glutSetWindowTitle(title);
 }
 
@@ -152,57 +184,136 @@ static void keyboard(unsigned char key, int, int) {
     Camera &c = g_scene.camera;
 
     switch (key) {
+    // ── Mode switch ──
+        case 'v':
+        case 'V':
+            g_cameraMode = (g_cameraMode == CameraMode::EXPLORER) 
+                         ? CameraMode::THIRD_PERSON 
+                         : CameraMode::EXPLORER;
+            if (g_cameraMode == CameraMode::EXPLORER) {
+                applyOrbit();
+            } else {
+                applyThirdPerson();
+            }
+            updateTitle();
+            break;
+    
     // ── Explorer Mode orbit vertical ──
         case 'w':
         case 'W':
-            g_beta += 0.05f;
-            if (g_beta > 1.5f)
-                g_beta = 1.5f;
+            if (g_cameraMode == CameraMode::EXPLORER) {
+                g_beta += 0.05f;
+                if (g_beta > 1.5f)
+                    g_beta = 1.5f;
+                applyOrbit();
+            } else {
+                // Third Person: move character forward
+                g_targetPos.x += 0.1f * sinf(g_thirdPersonAlpha);
+                g_targetPos.z += 0.1f * cosf(g_thirdPersonAlpha);
+                applyThirdPerson();
+            }
             break;
         case 's':
         case 'S':
-            g_beta -= 0.05f;
-            if (g_beta < -1.5f)
-                g_beta = -1.5f;
+            if (g_cameraMode == CameraMode::EXPLORER) {
+                g_beta -= 0.05f;
+                if (g_beta < -1.5f)
+                    g_beta = -1.5f;
+                applyOrbit();
+            } else {
+                // Third Person: move character backward
+                g_targetPos.x -= 0.1f * sinf(g_thirdPersonAlpha);
+                g_targetPos.z -= 0.1f * cosf(g_thirdPersonAlpha);
+                applyThirdPerson();
+            }
             break;
         // ── Explorer Mode orbit horizontal ──
         case 'a':
         case 'A':
-            g_alpha -= 0.05f;
+            if (g_cameraMode == CameraMode::EXPLORER) {
+                g_alpha -= 0.05f;
+                applyOrbit();
+            } else {
+                // Third Person: move character left
+                float leftX = cosf(g_thirdPersonAlpha);
+                float leftZ = -sinf(g_thirdPersonAlpha);
+                g_targetPos.x -= 0.1f * leftX;
+                g_targetPos.z -= 0.1f * leftZ;
+                applyThirdPerson();
+            }
             break;
         case 'd':
         case 'D':
-            g_alpha += 0.05f;
+            if (g_cameraMode == CameraMode::EXPLORER) {
+                g_alpha += 0.05f;
+                applyOrbit();
+            } else {
+                // Third Person: move character right
+                float rightX = cosf(g_thirdPersonAlpha);
+                float rightZ = -sinf(g_thirdPersonAlpha);
+                g_targetPos.x += 0.1f * rightX;
+                g_targetPos.z += 0.1f * rightZ;
+                applyThirdPerson();
+            }
             break;
         // ── Zoom ──
         case 'q':
         case 'Q':
-            g_radius *= 0.95f;
-            if (g_radius < 0.1f)
-                g_radius = 0.1f;
+            if (g_cameraMode == CameraMode::EXPLORER) {
+                g_radius *= 0.95f;
+                if (g_radius < 0.1f)
+                    g_radius = 0.1f;
+                applyOrbit();
+            } else {
+                g_thirdPersonDistance *= 0.95f;
+                if (g_thirdPersonDistance < 0.5f)
+                    g_thirdPersonDistance = 0.5f;
+                applyThirdPerson();
+            }
             break;
         case 'e':
         case 'E':
-            g_radius *= 1.05f;
+            if (g_cameraMode == CameraMode::EXPLORER) {
+                g_radius *= 1.05f;
+                applyOrbit();
+            } else {
+                g_thirdPersonDistance *= 1.05f;
+                applyThirdPerson();
+            }
             break;
         // ── Sobe / desce ──
         case 'z':
         case 'Z': {
-            float k = g_radius * 0.05f;
-            translateCamera(c, 0.0f, k, 0.0f);
-            orbitFromCamera(c);
+            if (g_cameraMode == CameraMode::EXPLORER) {
+                float k = g_radius * 0.05f;
+                translateCamera(c, 0.0f, k, 0.0f);
+                orbitFromCamera(c);
+                applyOrbit();
+            } else {
+                g_targetPos.y += 0.1f;
+                applyThirdPerson();
+            }
             break;
         }
         case 'x':
         case 'X': {
-            float k = g_radius * 0.05f;
-            translateCamera(c, 0.0f, -k, 0.0f);
-            orbitFromCamera(c);
+            if (g_cameraMode == CameraMode::EXPLORER) {
+                float k = g_radius * 0.05f;
+                translateCamera(c, 0.0f, -k, 0.0f);
+                orbitFromCamera(c);
+                applyOrbit();
+            } else {
+                g_targetPos.y -= 0.1f;
+                applyThirdPerson();
+            }
             break;
         }
         case 'r':
         case 'R':
+            g_cameraMode = CameraMode::EXPLORER;
             initOrbit();
+            g_targetPos = {0.0f, 0.0f, 0.0f};
+            applyOrbit();
             break;
         case 'm':
         case 'M':
@@ -219,7 +330,6 @@ static void keyboard(unsigned char key, int, int) {
         case 27:
             exit(0);
     }
-    applyOrbit();
     updateTitle();
     glutPostRedisplay();
 }
@@ -227,29 +337,49 @@ static void keyboard(unsigned char key, int, int) {
 static void specialKey(int key, int, int) {
     Camera &c = g_scene.camera;
     float k = g_radius * 0.05f;
-    // Vetor frente D (normalizado, no plano XZ — ignora componente vertical para pan horizontal)
-    float fdx = -sinf(g_alpha);
-    float fdz = -cosf(g_alpha);
-    // Vetor direita (perpendicular a D no plano XZ)
-    float rx = cosf(g_alpha);
-    float rz = -sinf(g_alpha);
-    switch (key) {
-        case GLUT_KEY_UP:
-            translateCamera(c, k * fdx, 0.0f, k * fdz);
-            break;
-        case GLUT_KEY_DOWN:
-            translateCamera(c, -k * fdx, 0.0f, -k * fdz);
-            break;
-        case GLUT_KEY_RIGHT:
-            translateCamera(c, k * rx, 0.0f, k * rz);
-            break;
-        case GLUT_KEY_LEFT:
-            translateCamera(c, -k * rx, 0.0f, -k * rz);
-            break;
+    
+    if (g_cameraMode == CameraMode::EXPLORER) {
+        // Vetor frente D (normalizado, no plano XZ — ignora componente vertical para pan horizontal)
+        float fdx = -sinf(g_alpha);
+        float fdz = -cosf(g_alpha);
+        // Vetor direita (perpendicular a D no plano XZ)
+        float rx = cosf(g_alpha);
+        float rz = -sinf(g_alpha);
+        switch (key) {
+            case GLUT_KEY_UP:
+                translateCamera(c, k * fdx, 0.0f, k * fdz);
+                break;
+            case GLUT_KEY_DOWN:
+                translateCamera(c, -k * fdx, 0.0f, -k * fdz);
+                break;
+            case GLUT_KEY_RIGHT:
+                translateCamera(c, k * rx, 0.0f, k * rz);
+                break;
+            case GLUT_KEY_LEFT:
+                translateCamera(c, -k * rx, 0.0f, -k * rz);
+                break;
+        }
+        // Recalcula alpha/beta/radius a partir da nova posição
+        orbitFromCamera(c);
+        applyOrbit();
+    } else {
+        // Third Person Mode: setas rotacionam câmara e sobem/descem character
+        switch (key) {
+            case GLUT_KEY_UP:
+                g_targetPos.y += 0.1f;
+                break;
+            case GLUT_KEY_DOWN:
+                g_targetPos.y -= 0.1f;
+                break;
+            case GLUT_KEY_RIGHT:
+                g_thirdPersonAlpha += 0.05f;
+                break;
+            case GLUT_KEY_LEFT:
+                g_thirdPersonAlpha -= 0.05f;
+                break;
+        }
+        applyThirdPerson();
     }
-    // Recalcula alpha/beta/radius a partir da nova posição
-    orbitFromCamera(c);
-    applyOrbit();
     updateTitle();
     glutPostRedisplay();
 }
@@ -262,30 +392,49 @@ static void mouseButton(int btn, int state, int x, int y) {
     }
     // Scroll do rato: zoom
     if (btn == 3) {
-        g_radius *= 0.95f;
-        if (g_radius < 0.1f)
-            g_radius = 0.1f;
-        applyOrbit();
+        if (g_cameraMode == CameraMode::EXPLORER) {
+            g_radius *= 0.95f;
+            if (g_radius < 0.1f)
+                g_radius = 0.1f;
+            applyOrbit();
+        } else {
+            g_thirdPersonDistance *= 0.95f;
+            if (g_thirdPersonDistance < 0.5f)
+                g_thirdPersonDistance = 0.5f;
+            applyThirdPerson();
+        }
         glutPostRedisplay();
     }
     if (btn == 4) {
-        g_radius *= 1.05f;
-        applyOrbit();
+        if (g_cameraMode == CameraMode::EXPLORER) {
+            g_radius *= 1.05f;
+            applyOrbit();
+        } else {
+            g_thirdPersonDistance *= 1.05f;
+            applyThirdPerson();
+        }
         glutPostRedisplay();
     }
 }
 
 static void mouseMove(int x, int y) {
     if (!g_drag) return;
-    g_alpha += (x - g_mx) * 0.01f;
-    g_beta  -= (y - g_my) * 0.01f;
-    if (g_beta >  1.5f) 
-        g_beta =  1.5f;
-    if (g_beta < -1.5f) 
-        g_beta = -1.5f;
+    
+    if (g_cameraMode == CameraMode::EXPLORER) {
+        g_alpha += (x - g_mx) * 0.01f;
+        g_beta  -= (y - g_my) * 0.01f;
+        if (g_beta >  1.5f) 
+            g_beta =  1.5f;
+        if (g_beta < -1.5f) 
+            g_beta = -1.5f;
+        applyOrbit();
+    } else {
+        g_thirdPersonAlpha += (x - g_mx) * 0.01f;
+        g_targetPos.y += (g_my - y) * 0.02f;
+        applyThirdPerson();
+    }
     g_mx = x; 
     g_my = y;
-    applyOrbit();
     glutPostRedisplay();
 }
 
