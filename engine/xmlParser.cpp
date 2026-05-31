@@ -15,6 +15,7 @@ struct ParseState {
     Group*  animGroup = nullptr;
     size_t  animIdx   = 0;
     Mesh*   currentMesh = nullptr;
+    Light*  currentLight = nullptr;
 };
 
 static bool sameName(const char* a, const char* b) {
@@ -94,6 +95,7 @@ static void XMLCALL onStart(void* ud, const XML_Char* name, const XML_Char** att
 
     // ── Luzes ──
     } else if (strcmp(name, "light") == 0) {
+        ps->currentLight = nullptr;
         if (ps->scene->lights.size() >= 8) return;
 
         Light light;
@@ -116,6 +118,7 @@ static void XMLCALL onStart(void* ud, const XML_Char* name, const XML_Char** att
         if (auto v = attr(atts, "cutoff")) light.cutoff = atof(v);
 
         ps->scene->lights.push_back(light);
+        ps->currentLight = &ps->scene->lights.back();
 
     // ── Grupos ──
     } else if (strcmp(name, "group") == 0) {
@@ -237,6 +240,10 @@ static void XMLCALL onStart(void* ud, const XML_Char* name, const XML_Char** att
                 ps->currentMesh->textureFile = ps->dir + f;
         }
 
+    } else if (strcmp(name, "color") == 0) {
+        if (ps->currentLight)
+            parseRGB(atts, ps->currentLight->color);
+
     } else if (strcmp(name, "diffuse") == 0) {
         if (ps->currentMesh) parseRGB(atts, ps->currentMesh->material.diffuse);
 
@@ -268,6 +275,9 @@ static void XMLCALL onEnd(void* ud, const XML_Char* name) {
 
     if (strcmp(name, "model") == 0)
         ps->currentMesh = nullptr;
+
+    if (strcmp(name, "light") == 0)
+        ps->currentLight = nullptr;
 }
 
 bool parseXML(const std::string& path, Scene& scene) {

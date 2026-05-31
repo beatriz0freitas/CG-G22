@@ -1,0 +1,157 @@
+<world>
+    <window width="512" height="512" />
+    <camera>
+        <position x="2.100725" y="1.537107" z="-1.491394" />
+        <lookAt x="0" y="0" z="0" />
+        <up x="0" y="1" z="0" />
+        <projection fov="60" near="1" far="1000" />
+    </camera>
+
+    <lights>
+        <light type="point" posx="2" posy="2" posz="-2">
+            <color R="255" G="0" B="0" />
+        </light>
+        <light type="point" posx="-2" posy="2" posz="2">
+            <color R="0" G="255" B="0" />
+        </light>
+        <light type="point" posx="0" posy="2.5" posz="0">
+            <color R="0" G="0" B="255" />
+        </light>
+    </lights>
+
+    <group>
+        <group>
+            <transform>
+                <translate x="2" y="2" z="-2" />
+                <scale x="0.06" y="0.06" z="0.06" />
+            </transform>
+            <models>
+                <model file="../test_files/test_files_phase_4/sphere_1_8_8.3d">
+                    <color>
+                        <diffuse R="255" G="0" B="0" />
+                        <ambient R="0" G="0" B="0" />
+                        <specular R="0" G="0" B="0" />
+                        <emissive R="255" G="0" B="0" />
+                        <shininess value="0" />
+                    </color>
+                </model>
+            </models>
+        </group>
+        <group>
+            <transform>
+                <translate x="-2" y="2" z="2" />
+                <scale x="0.06" y="0.06" z="0.06" />
+            </transform>
+            <models>
+                <model file="../test_files/test_files_phase_4/sphere_1_8_8.3d">
+                    <color>
+                        <diffuse R="0" G="255" B="0" />
+                        <ambient R="0" G="0" B="0" />
+                        <specular R="0" G="0" B="0" />
+                        <emissive R="0" G="255" B="0" />
+                        <shininess value="0" />
+                    </color>
+                </model>
+            </models>
+        </group>
+        <group>
+            <transform>
+                <translate x="0" y="2.5" z="0" />
+                <scale x="0.06" y="0.06" z="0.06" />
+            </transform>
+            <models>
+                <model file="../test_files/test_files_phase_4/sphere_1_8_8.3d">
+                    <color>
+                        <diffuse R="0" G="0" B="255" />
+                        <ambient R="0" G="0" B="0" />
+                        <specular R="0" G="0" B="0" />
+                        <emissive R="0" G="0" B="255" />
+                        <shininess value="0" />
+                    </color>
+                </model>
+            </models>
+        </group>
+        <group>
+            <models>
+                <model file="../test_files/test_files_phase_4/plane_2_3.3d">
+                    <color>
+                        <diffuse R="210" G="210" B="210" />
+                        <ambient R="15" G="15" B="15" />
+                        <specular R="0" G="0" B="0" />
+                        <emissive R="0" G="0" B="0" />
+                        <shininess value="0" />
+                    </color>
+                </model>
+            </models>
+        </group>
+        <group>
+            <transform>
+                <translate x="-0.5" y="0" z="-0.5" />
+                <scale x="0.2" y="0.2" z="0.2" />
+            </transform>
+            <models>
+                <model file="../test_files/test_files_phase_4/cone_1_2_4_3.3d">
+                    <color>
+                        <diffuse R="235" G="235" B="235" />
+                        <ambient R="12" G="12" B="12" />
+                        <specular R="180" G="180" B="180" />
+                        <emissive R="0" G="0" B="0" />
+                        <shininess value="64" />
+                    </color>
+                </model>
+            </models>
+        </group>
+        <group>
+            <transform>
+                <translate x="0.5" y="0.2" z="0.5" />
+                <scale x="0.2" y="0.2" z="0.2" />
+            </transform>
+            <models>
+                <model file="../test_files/test_files_phase_4/sphere_1_8_8.3d">
+                    <color>
+                        <diffuse R="235" G="235" B="235" />
+                        <ambient R="12" G="12" B="12" />
+                        <specular R="180" G="180" B="180" />
+                        <emissive R="0" G="0" B="0" />
+                        <shininess value="64" />
+                    </color>
+                </model>
+            </models>
+        </group>
+        <group>
+            <transform>
+                <translate x="-0.5" y="0" z="0.5" />
+                <scale x="0.1" y="0.1" z="0.1" />
+                <rotate angle="-90" x="1" y="0" z="0" />
+            </transform>
+            <models>
+                <model file="../test_files/test_files_phase_4/bezier_10.3d">
+                    <color>
+                        <diffuse R="230" G="230" B="230" />
+                        <ambient R="12" G="12" B="12" />
+                        <specular R="210" G="210" B="210" />
+                        <emissive R="0" G="0" B="0" />
+                        <shininess value="96" />
+                    </color>
+                </model>
+            </models>
+        </group>
+        <group>
+            <transform>
+                <scale x="0.2" y="0.2" z="0.2" />
+                <translate x="2.5" y="1.0" z="-2.5" />
+            </transform>
+            <models>
+                <model file="../test_files/test_files_phase_4/box_2_3.3d">
+                    <color>
+                        <diffuse R="235" G="235" B="235" />
+                        <ambient R="12" G="12" B="12" />
+                        <specular R="180" G="180" B="180" />
+                        <emissive R="0" G="0" B="0" />
+                        <shininess value="64" />
+                    </color>
+                </model>
+            </models>
+        </group>
+    </group>
+</world>
