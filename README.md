@@ -88,6 +88,7 @@ Recebe um ficheiro XML de configuração da scene. Os caminhos dos modelos no XM
 | Rato (botão esq. + arrastar) | Órbita livre |
 | Scroll | Zoom in / out |
 | `M` | Cicla modo: Wireframe → Solid → Solid+Wireframe |
+| `C` | Mostra / esconde a curva Catmull-Rom |
 | `B` | Toggle eixos XYZ |
 | `R` | Reset câmara para a posição do XML |
 | `ESC` | Fechar |
@@ -105,7 +106,7 @@ Automatiza compilação, geração de modelos e execução de testes.
 ./run.sh --test1 <n>      # corre apenas o teste N da fase 1 (1-5)
 ./run.sh --test2 <n>      # corre apenas o teste N da fase 2 (1-4)
 ./run.sh --test3 <n>      # corre apenas o teste N da fase 3 (1-2)
-./run.sh --test4 <n>      # corre apenas o teste N da fase 4 (1-6)
+./run.sh --test4 <n>      # corre apenas o teste N da fase 4 (1-7)
 ./run.sh --scenes         # corre todas as scenes da pasta scenes/
 ./run.sh --scene <nome>   # corre uma scene específica (ex: cone)
 ./run.sh --clean          # apaga build/ e todos os .3d gerados

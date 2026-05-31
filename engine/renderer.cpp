@@ -30,6 +30,7 @@ template<> struct hash<Vertex> {
 // ── Estado global do renderer ──
 RenderMode g_renderMode = RenderMode::SOLID;
 bool       g_showAxes   = true;
+bool       g_showCatmullCurve = true;
 float      g_time       = 0.0f;
 
 void toggleRenderMode() {
@@ -38,6 +39,10 @@ void toggleRenderMode() {
         case RenderMode::SOLID:      g_renderMode = RenderMode::SOLID_WIRE; break;
         case RenderMode::SOLID_WIRE: g_renderMode = RenderMode::WIREFRAME;  break;
     }
+}
+
+void toggleCatmullCurve() {
+    g_showCatmullCurve = !g_showCatmullCurve;
 }
 
 // ── Catmull-Rom ──
@@ -114,6 +119,7 @@ static unsigned int loadTexture(const std::string& filename) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
     glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
 
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB,
                  img.width, img.height, 0,
                  GL_RGB, GL_UNSIGNED_BYTE, img.pixels.data());
@@ -134,7 +140,6 @@ static void setupLights(const Scene& scene) {
 
     glEnable(GL_LIGHTING);
 
-    const GLfloat white[4] = {1.0f, 1.0f, 1.0f, 1.0f};
     const GLfloat black[4] = {0.0f, 0.0f, 0.0f, 1.0f};
 
     for (int i = 0; i < 8; ++i)
@@ -145,8 +150,8 @@ static void setupLights(const Scene& scene) {
         const Light& light = scene.lights[i];
 
         glEnable(id);
-        glLightfv(id, GL_DIFFUSE, white);
-        glLightfv(id, GL_SPECULAR, white);
+        glLightfv(id, GL_DIFFUSE, light.color);
+        glLightfv(id, GL_SPECULAR, light.color);
         glLightfv(id, GL_AMBIENT, black);
 
         if (light.type == LightType::DIRECTIONAL) {
@@ -391,7 +396,7 @@ static void renderGroup(const Group& group) {
                 if (op.points.size() < 4 || op.time <= 0.0f) break;
 
                 // Desenha a curva Catmull-Rom a partir do VBO pré-computado
-                if (op.curveVboId != 0) {
+                if (g_showCatmullCurve && op.curveVboId != 0) {
                     GLboolean lightingWas = glIsEnabled(GL_LIGHTING);
                     GLboolean textureWas  = glIsEnabled(GL_TEXTURE_2D);
                     if (lightingWas) glDisable(GL_LIGHTING);

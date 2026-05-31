@@ -88,6 +88,7 @@ struct Light {
     LightType type = LightType::POINT;
     Vec3 position  = {0, 0, 0};
     Vec3 direction = {0, -1, 0};
+    float color[4] = {1.0f, 1.0f, 1.0f, 1.0f};
     float cutoff   = 180.0f;
 };
 
