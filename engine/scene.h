@@ -38,17 +38,26 @@ struct Material {
     float shininess   = 0.0f;
 };
 
-// Mesh - verts carregados do .3d; após buildVBOs() os dados residem na GPU.
+// GeometryCache - armazena VBOs compartilhados por múltiplas instâncias do mesmo modelo
+struct GeometryCache {
+    unsigned int vboId      = 0;   // Buffer com vértices
+    int          vboCount   = 0;   // Número de vértices
+    unsigned int indexVboId = 0;   // Buffer com índices
+    int          indexCount = 0;   // Número de índices
+};
+
+// Mesh - referencia geometria em cache + propriedades específicas (material, textura)
 struct Mesh {
     std::string         filename;
-    std::vector<Vertex> verts;
+    std::vector<Vertex> verts;     // dados temporários (libertar após buildVBOs)
     Material            material;
     std::string         textureFile;
     unsigned int        textureId  = 0;
-    unsigned int        vboId      = 0;   // Buffer com vértices únicos
-    int                 vboCount   = 0;   // Número de vértices únicos
-    unsigned int        indexVboId = 0;   // Buffer com índices (elemento array buffer)
-    int                 indexCount = 0;   // Número de índices (3x número de triângulos)
+    // Referência ao cache de geometria compartilhado
+    unsigned int        vboId      = 0;   // Buffer com vértices (do cache)
+    int                 vboCount   = 0;   // Número de vértices (do cache)
+    unsigned int        indexVboId = 0;   // Buffer com índices (do cache)
+    int                 indexCount = 0;   // Número de índices (do cache)
 };
 
 enum class TransformType {
