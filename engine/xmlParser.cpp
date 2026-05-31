@@ -6,6 +6,8 @@
 #include <cstdlib>
 #include <string>
 #include <vector>
+#include <map>
+#include <functional>
 
 struct ParseState {
     Scene*               scene;
@@ -310,5 +312,33 @@ bool parseXML(const std::string& path, Scene& scene) {
     }
     XML_ParserFree(p);
     fclose(f);
+    
+    // ── Debug: Contar modelos únicos vs instâncias ──
+    if (ok) {
+        std::map<std::string, int> modelCount;
+        std::function<void(const Group&)> countModels = [&](const Group& g) {
+            for (const auto& mesh : g.meshes) {
+                modelCount[mesh.filename]++;
+            }
+            for (const auto& child : g.children)
+                countModels(child);
+        };
+        countModels(scene.root);
+        
+        int totalModels = 0, uniqueModels = modelCount.size();
+        for (const auto& [filename, count] : modelCount) {
+            totalModels += count;
+        }
+        printf("\n=== Cache Analysis ===\n");
+        printf("Modelos únicos: %d\n", uniqueModels);
+        printf("Instâncias totais: %d\n", totalModels);
+        for (const auto& [filename, count] : modelCount) {
+            if (count > 1)
+                printf("  %s: %d instâncias (cache potential: %d reutilizações)\n",
+                       filename.c_str(), count, count - 1);
+        }
+        printf("\n");
+    }
+    
     return ok;
 }

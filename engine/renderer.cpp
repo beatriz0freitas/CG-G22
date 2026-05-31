@@ -248,6 +248,7 @@ void buildVBOs(Group& g) {
             mesh.indexCount = it->second.indexCount;
             mesh.verts.clear();
             mesh.verts.shrink_to_fit();
+            printf("  [Cache hit] Reutilizando geometria: '%s'\n", mesh.filename.c_str());
             continue;
         }
 
@@ -290,6 +291,9 @@ void buildVBOs(Group& g) {
 
         s_geoCache[mesh.filename] = {mesh.vboId, mesh.indexVboId,
                                      mesh.vboCount, mesh.indexCount};
+        printf("  [VBO criado] '%s' (vboId=%u, indexVboId=%u, %d verts, %d indices)\n",
+               mesh.filename.c_str(), mesh.vboId, mesh.indexVboId, 
+               mesh.vboCount, mesh.indexCount);
     }
 
     // Pré-computa as curvas Catmull-Rom em VBOs (só uma vez, não por frame)
